@@ -25,22 +25,45 @@ n_df2 <- do.call(
   c("n1", "n2", "n3", "n4", "IV")
 )
 
+CSM3 <- sum(sub_3_df$IV == "  X1, X2, X3")
 
-sub_3_df <- subset(n_df, n2 == "3")
-head(sub_3_df)
+CSM4 <- sum(sub_4_df$IV == "  X1, X2, X3, X4")
 
-count(sub_3_df, sub_3_df$IV == "X1, X2, X3")
-count(sub_3_df, when(sub_3_df$IV == "X1, X2, X3"))
-CS_3_IV_case <- if (sub_3_df$IV[i] == "X1, X2, X3") {
-  j <- i + 1
-  return(j)
-}
-CS_3_IV_case <- if (sub_3_df$IV[12] == "X1, X2, X3") { 1 }
-CS_3_IV_case <- if (sub_3_df$IV[12] == "X1, X2, X3") { return TRUE } else { return FALSE }
+CSM5 <- sum(sub_5_df$IV == "  X1, X2, X3, X4, X5")
+
+CSM6 <- sum(sub_6_df$IV == "  X1, X2, X3, X4, X5, X6")
+
+CSM7 <- sum(sub_7_df$IV == "  X1, X2, X3, X4, X5, X6, X7")
+
+CSM8 <- sum(sub_8_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8")
+
+CSM9 <- sum(sub_9_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8, X9")
+
+CSM10 <- sum(sub_10_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8, X9, X10")
+
+CSM11 <- sum(sub_11_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, 
+    X11")
+
+CSM12 <- sum(sub_12_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, 
+    X11, X12")
+
+CSM13 <- sum(sub_13_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, 
+    X11, X12, X13")
+
+CSM14 <- sum(sub_14_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, 
+    X11, X12, X13, X14")
+
+CSM15 <- sum(sub_15_df$IV == "  X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, 
+    X11, X12, X13, X14, X15")
+Correct_Models_Selected_by_BM1 <- sum(CSM3, CSM4, CSM4, CSM5, CSM6, CSM7, 
+                                      CSM8, CSM9, CSM10, CSM11, CSM12, 
+                                      CSM13, CSM14, CSM15)
+Correct_Models_Selected_by_BM1
+
 
 setwd("~/DAEN_698/MCS_BM1/txt & csv files")
-lapply(sub_3_df, sum(CS_3_IV_case[i]))
-
+sub_3_df <- subset(n_df, n2 == "3")
+head(sub_3_df)
 write.csv(sub_3_df, file = "Selections_on_3_IV_datasets.csv", row.names = FALSE)
 
 
