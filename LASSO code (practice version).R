@@ -22,11 +22,11 @@ library(elasticnet)
 
 # these 2 lines together create a simple character list of 
 # all the file names in the file folder of datasets you created
-directory_path <- "~/DAEN_698/other datasets/sample obs"
-filepath_list <- list.files(path = directory_path, full.names = TRUE, recursive = TRUE)
+directory_paths <- "~/DAEN_698/other datasets/sample obs"
+filepaths_list <- list.files(path = directory_paths, full.names = TRUE, recursive = TRUE)
 
 # reformat the names of each of the csv file formatted dataset
-DS_names_list <- basename(filepath_list)
+DS_names_list <- basename(filepaths_list)
 DS_names_list <- tools::file_path_sans_ext(DS_names_list)
 head(DS_names_list)
 
@@ -37,7 +37,7 @@ DS_names_list[order(unlist(DS_names_list), decreasing = TRUE)]
 # each of the 53k datasets in an iterative manner in such a way 
 # that it assigns each of them to the corresponding name of that 
 # dataset in the file folder they are stored in.
-datasets <- lapply(filepath_list, read.csv)
+datasets <- lapply(filepaths_list, read.csv)
 
 
 # This function fits all 53,500 LASSO regressions for/on
