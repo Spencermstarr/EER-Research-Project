@@ -22,19 +22,19 @@ library(elasticnet)
 
 # these 2 lines together create a simple character list of 
 # all the file names in the file folder of datasets you created
-directory_path <- "~/DAEN_698/spencer"
-filepath_list <- list.files(path = directory_path, full.names = TRUE, recursive = TRUE)
+directory_paths <- "~/DAEN_698/spencer"
+filepaths_list <- list.files(path = directory_paths, full.names = TRUE, recursive = TRUE)
 
 # reformat the names of each of the csv file formatted dataset
-DS_names_list <- basename(filepath_list)
+DS_names_list <- basename(filepaths_list)
 DS_names_list <- tools::file_path_sans_ext(DS_names_list)
 
 
 # The code below reads the data into the RStudio Workspace from
-# each of the 53k datasets in an iterative manner in such a way 
+# each of the 58.5k datasets in an iterative manner in such a way 
 # that it assigns each of them to the corresponding name of that 
 # dataset in the file folder they are stored in.
-datasets <- lapply(filepath_list, read.csv)
+datasets <- lapply(filepaths_list, read.csv)
 
 
 # This function fits all 53,500 LASSO regressions for/on
@@ -54,6 +54,9 @@ LASSO_Coeffs <- lapply(LASSO_fits,
                        function(i) predict(i, x = as.matrix(select(i, starts_with("X"))), 
                                            s = 0.1, mode = "fraction", 
                                            type = "coefficients")[["coefficients"]])
+write.csv(data.frame(DS_name = DS_names_list, 
+                     LASSO_Estimates_raw = sapply(LASSO_Coeffs, toString)), 
+          file = "raw_LASSO_Estimates.csv", row.names = FALSE)
 
 
 ### Write my own custom function which will separate out and return a 
@@ -66,6 +69,8 @@ LASSO_Coeffs <- lapply(LASSO_fits,
 Positive_Coeffs <- lapply(LASSO_Coeffs, function(i) i[i > 0])
 
 IVs_Selected_by_LASSO <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
+
+
 
 
 
@@ -83,3 +88,6 @@ write.csv(data.frame(DS_name = DS_names_list,
 write.csv(data.frame(DS_name = DS_names_list, 
                      IVs_selected = sapply(IVs_Selected_by_LASSO, toString)), 
           file = "IVs_Selected_by_LASSO.csv", row.names = FALSE)
+
+
+

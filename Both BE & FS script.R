@@ -31,6 +31,8 @@ library(stringi)
 library(purrr)
 
 
+
+
 # Importing an entire file folder's worth of 1 worksheet csv files, 
 # these worksheets were created using the random observations 
 # generating Macro that Dr. Davies wrote for me with 3 different
@@ -38,23 +40,10 @@ library(purrr)
 # various nested levels  of iteration laid out in the original 
 # draft of the Working Paper's in depth description of the
 # Monte Carlo Simulations used to compare his EER algorithm to
-# the current standard alternatives and those of the past
-# as benchmarks.
+# the current standard alternatives and those of the past as benchmarks.
 
 
 
-
-### Step 1 for comparing the results of BE on our
-### randomly generated synthetic sample data,
-### in terms of runtime, accuracy, and probability
-### of accidentally choosing spuriously correlated
-### regressors - Importing & Loading the aforementioned
-### sample observations Dr. Davies
-### generated for this purpose.
-# Import all 531 of the individual csv files, each of which
-# containing 500 rows by 30 columns worth of randomly generated 
-# (synthetic) observations below.
-# In order to accomplish this, I will be using the readr library in R.
 
 
 
@@ -62,16 +51,21 @@ library(purrr)
 # in the file folder called 'Run_3_seven) which is filled
 # random synthetic observations to run Lasso, Stepwise, and eventually EER
 # on to compare the results. There are 531 random spreadsheets in this folder
-directory_path <- "~/DAEN_698/spencer"
-filepath_list <- list.files(path = directory_path, full.names = TRUE, recursive = TRUE)
-length(filepath_list)
-str(filepath_list)
+directory_paths <- "~/DAEN_698/spencer"
+filepaths_list <- list.files(path = directory_paths, full.names = TRUE, recursive = TRUE)
+length(filepaths_list)
+str(filepaths_list)
 
 # reformat the names of each of the csv file formatted datasets
-DS_names_list <- basename(filepath_list)
+DS_names_list <- basename(filepaths_list)
 DS_names_list <- tools::file_path_sans_ext(DS_names_list)
 head(DS_names_list, n = 4)
 
+
+# Import all 531 of the individual csv files, each of which
+# containing 500 rows by 30 columns worth of randomly generated 
+# (synthetic) observations below.
+# In order to accomplish this, I will be using the readr library in R.
 ## This line reads all of the data in each of the csv files 
 ## using the name of each store in the list we just created.
 datasets <- lapply(filepath_list, read.csv)
