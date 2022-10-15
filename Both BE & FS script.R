@@ -100,7 +100,7 @@ head(BE_fits, n = 2)
 BE_Coeffs <- lapply(seq_along(BE_fits), function(i) coef(BE_fits[[i]]))
 
 
-IVs_Selected_by_BE <- lapply(seq_along(BE_fits), 
+Models_Selected_by_BE <- lapply(seq_along(BE_fits), 
                               \(i) names(coef(BE_fits[[i]])))
 
 head(IVs_Selected_by_BE, n = 3)
@@ -115,7 +115,7 @@ head(IVs_Selected_by_BE, n = 3)
 write.csv(data.frame(DS_name = DS_names_list, 
                      Variables_selected = sapply(IVs_Selected_by_BE, 
                                                  toString)), 
-          file = "IVs_Selected_by_BE.csv", row.names = FALSE)
+          file = "Modelss_Selected_by_BE.csv", row.names = FALSE)
 
 
 
@@ -127,13 +127,6 @@ write.csv(data.frame(DS_name = DS_names_list,
 ### Assign the null models to their corresponding datasets and
 ### store these in the object "null_models"
 set.seed(11)      # for reproducibility
-#datasets[[1]]$
-null_model = lm(datasets[[1]]$Y ~ 1, data = datasets[[1]])
-null_model
-null_model[1]
-null_model[[1]]
-
-
 null_models <- vector("list", length = length(datasets))
 null_models[[1]]
 null_models[[2]]
@@ -153,8 +146,13 @@ for(j in seq_along(datasets)) { null_models[[j]] = lm(formula = Y ~ 1,
 
 FS_Coeffs <- lapply(seq_along(FS_fits), function(i) coef(FS_fits[[i]]))
 
-IVs_selected_by_FS <- lapply(seq_along(FS_fits), 
+
+Models_Selected_by_FS <- lapply(seq_along(FS_fits), 
                              \(i) names(coef(FS_fits[[i]])))
+
+#without the Intercepts included
+IVs_Selected_by_FS <- lapply(seq_along(Models_Selected_by_FS), 
+                             \(i) Models_Selected_by_FS[[i]][-1])
 
 
 ### Again, the final format of the results should look
@@ -163,5 +161,7 @@ IVs_selected_by_FS <- lapply(seq_along(FS_fits),
 # of X#s to select.
 ## print out the output formatted the way Dr. Davies asked for!
 write.csv(data.frame(DS_name = DS_names_list, 
-                     Variables_selected = sapply(IVs_selected_by_FS, toString)), 
+                     Variables_selected = sapply(IVs_Selected_by_FS, toString)), 
           file = "IVs_Selected_by_FS.csv", row.names = FALSE)
+
+
