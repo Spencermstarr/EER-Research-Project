@@ -1,14 +1,16 @@
 # Spencer Marlen-Starr's RStudio script of functions, methods, code, and 
-# code comments required for running Benchmark #2, namely the 
-# Backward Elimination version of Stepwise Regression
+# code comments required for running Benchmarks #2 & 3, namely the 
+# Backward Elimination & Forward Selection versions of Stepwise Regression
 # on some of our random synthetic observations to see how well it 
-# does so we can compare its results with Dr. Davies EER procedure.
+# does so we can compare its results with Dr. Davies' EER procedure.
 
 
 # find out which working directory R has defaulted to
 getwd()
-setwd("~/DAEN_698/MCS_BMs 2 & 3")
-getwd()
+setwd
+# Or, click the Session option in the Ribbon, and in the
+# Set Working Directory's dropdown list, select Choose Directory
+# in order to set it manually.
 
 
 ### Benchmark #2: 
@@ -18,8 +20,13 @@ getwd()
 ### the 'Backward Elimination' version of Stepwise Regression.
 
 
+# load all necessary packages using only 1 command/line
+library_list <- c(library(stats),library(dplyr),library(tidyverse),
+                  library(leaps),library(lars),library(tibble),
+                  library(readr),library(stringi),library(purrr))
 # load all necessary packages
 library(stats)
+library(plyr)
 library(dplyr)
 library(tidyverse)
 library(tibble)
@@ -32,26 +39,12 @@ library(purrr)
 
 
 
-
-# Importing an entire file folder's worth of 1 worksheet csv files, 
-# these worksheets were created using the random observations 
-# generating Macro that Dr. Davies wrote for me with 3 different
-# random possible worksheets created on each individual pass of the 
-# various nested levels  of iteration laid out in the original 
-# draft of the Working Paper's in depth description of the
-# Monte Carlo Simulations used to compare his EER algorithm to
-# the current standard alternatives and those of the past as benchmarks.
-
-
-
-
-
-
 # Extract all of the individual spreadsheet containing workbooks
-# in the file folder called 'Run_3_seven) which is filled
+# in the file folder called 'spencer' which is filled
 # random synthetic observations to run Lasso, Stepwise, and eventually EER
-# on to compare the results. There are 531 random spreadsheets in this folder
+# on to compare the results. There are 58.5k spreadsheets in this folder
 directory_paths <- "~/DAEN_698/spencer"
+directory_paths <- "~/GMU folders (local)/DAEN_698/spencer"
 filepaths_list <- list.files(path = directory_paths, full.names = TRUE, recursive = TRUE)
 length(filepaths_list)
 str(filepaths_list)
@@ -61,22 +54,35 @@ DS_names_list <- basename(filepaths_list)
 DS_names_list <- tools::file_path_sans_ext(DS_names_list)
 head(DS_names_list, n = 4)
 
+# sort both of the list of file names so that they are in the proper order
+my_order = DS_names_list |> 
+  # split apart the numbers
+  strsplit(split = "-", fixed = TRUE) |>
+  unlist() |> 
+  # convert them to numeric and get them in a data frame
+  as.numeric() |> matrix(nrow = length(DS_names_list), byrow = TRUE) |>
+  as.data.frame() |>
+  # get the appropriate ordering to sort the data frame
+  do.call(order, args = _)
+my_order
+DS_names_list = DS_names_list[my_order]
 
-# Import all 531 of the individual csv files, each of which
+filepaths_list = filepaths_list[my_order]
+
+
+# Import all 58.5k of the individual csv files, each of which
 # containing 500 rows by 30 columns worth of randomly generated 
 # (synthetic) observations below.
 # In order to accomplish this, I will be using the readr library in R.
 ## This line reads all of the data in each of the csv files 
 ## using the name of each store in the list we just created.
 datasets <- lapply(filepath_list, read.csv)
-# Running lines 77 & 78 to create the 'datasets' list took somewhere
-# between 22 & 23 minutes.
 ### Step 1 is complete
 
 
 
 ### Step 3: Run a Backward Elimination Stepwise Regression
-### function on each of the 47,500 datasets.
+### function on each of the 58,500 datasets.
 ### Assign the full models to their corresponding datasets and
 ### store these in the object "all_regressors_models"
 set.seed(11)      # for reproducibility
@@ -91,19 +97,18 @@ for(i in seq_along(datasets)) {
   BE_fits[[i]] <- step(object = full_models[[i]], 
                         scope = formula(full_models[[i]]),
                         direction = 'backward',
-                        trace = 0)
-}
+                        trace = 0) }
 
-head(full_models, n = 2)
-head(BE_fits, n = 2)
-
+# extract all of the coefficients estimated by the 59.5k BEs ran
 BE_Coeffs <- lapply(seq_along(BE_fits), function(i) coef(BE_fits[[i]]))
 
-
+# extract the names of all IVs selected by them + the intercept
 Models_Selected_by_BE <- lapply(seq_along(BE_fits), 
                               \(i) names(coef(BE_fits[[i]])))
 
-head(IVs_Selected_by_BE, n = 3)
+# extract the names of all IVs selected by them without the intercept
+IVs_Selected_by_BE <- lapply(seq_along(BE_fits), 
+                             \(i) names(coef(BE_fits[[i]])[-1]))
 
 
 
@@ -113,24 +118,23 @@ head(IVs_Selected_by_BE, n = 3)
 # of X#s to select.
 ## print out the output formatted the way Dr. Davies asked for!
 write.csv(data.frame(DS_name = DS_names_list, 
-                     Variables_selected = sapply(IVs_Selected_by_BE, 
+                     IVs_selected = sapply(IVs_Selected_by_BE, 
                                                  toString)), 
-          file = "Modelss_Selected_by_BE.csv", row.names = FALSE)
+          file = "IVs_Selected_by_BE.csv", row.names = FALSE)
+
+BM2_results <- data.frame(DS_name = DS_names_list, 
+                          IVs_Selected = sapply(IVs_Selected_by_BE, 
+                                                      toString))
 
 
 
 
-
-
-### Step 4/5 (optional): Run a Forward Selection Stepwise Regression
-### function on each of the 47,500 datasets.
+### Step 4/5: Run a Forward Selection Stepwise Regression
+### function on each of the 58,500 datasets.
 ### Assign the null models to their corresponding datasets and
 ### store these in the object "null_models"
 set.seed(11)      # for reproducibility
 null_models <- vector("list", length = length(datasets))
-null_models[[1]]
-null_models[[2]]
-head(null_model)
 head(null_models, n = 3)
 FS_fits <- vector("list", length = length(datasets))
 head(FS_fits, n = 3)   # returns a list with 15 elements, all of which are NULL
@@ -150,7 +154,7 @@ FS_Coeffs <- lapply(seq_along(FS_fits), function(i) coef(FS_fits[[i]]))
 Models_Selected_by_FS <- lapply(seq_along(FS_fits), 
                              \(i) names(coef(FS_fits[[i]])))
 
-#without the Intercepts included
+# without the Intercepts included
 IVs_Selected_by_FS <- lapply(seq_along(Models_Selected_by_FS), 
                              \(i) Models_Selected_by_FS[[i]][-1])
 
@@ -164,4 +168,6 @@ write.csv(data.frame(DS_name = DS_names_list,
                      Variables_selected = sapply(IVs_Selected_by_FS, toString)), 
           file = "IVs_Selected_by_FS.csv", row.names = FALSE)
 
-
+BM3_results <- data.frame(DS_name = DS_names_list, 
+                          IVs_selected = sapply(IVs_Selected_by_FS, 
+                                                      toString))
