@@ -23,37 +23,36 @@ library(elasticnet)
 setwd("~/EER Project/Data/last 40")
 df<- read.csv("0-11-3-462.csv", header = FALSE)
 str(df)
+# change column names of all the columns in the dataframe 'df'
+colnames(df) <- c("Y", "X1","X2", "X3", "X4","X5", "X6", "X7","X8", "X9",
+                  "X10","X11", "X12", "X13","X14", "X15", "X16","X17", 
+                  "X18", "X19","X20", "X21", "X22","X23", "X24", "X25",
+                  "X26", "X27", "X28","X29", "X30")
 
 data <- df
-# change column names of all the columns in the dataframe data
-#headers_all 
-colnames(data) <- c("Y", "X1","X2", "X3", "X4","X5", "X6", "X7","X8", "X9",
-                    "X1","X2", "X3")
 
 
-Y = df$V1
+
+Y = df$Y
 head(Y)
 Y_obs <- Y[-1]
-Y_obs <- Y_obs[-1]
+Y_obs <- Y_obs[-1:-2]
 head(Y_obs)
 Y_obs <- as.numeric(Y_obs)
 head(Y_obs)
 
+df$Y = NULL
 
+IV_headers <- df[3, ]
+True_IVs <- df[-2:-3,]
+head(True_IVs)
 
-df$V1 = NULL
+sample_obs <- df[-1:-3,]
 
-True_IVs <- df[-2,]
-
-sample_obs <- df[-2,]
-sample_obs <- sample_obs[-1, ]
-headers <- sample_obs[1, ]
-sample_obs <- sample_obs[-1, ]
 sample_obs <- lapply(sample_obs, as.numeric)
 sample_obs <- as.data.frame(sample_obs)
 
-Xs_matrix <- as.matrix(Xs_df)
-Xs_matrix <- as.numeric(Xs_matrix)
+Xs_matrix <- as.matrix(sample_obs)
 
 
 # This function fits the LASSO regression
@@ -62,67 +61,25 @@ LASSO <- enet(x = Xs_matrix, y = Y_obs, lambda = 0, normalize = FALSE)
 LASSO <- enet(x = as.matrix(sample_obs), y = Y_obs, 
               lambda = 0, normalize = FALSE)
 
+
 # This stores and prints out all of the regression 
 # equation specifications selected by LASSO when called
 set.seed(11)     # to ensure replicability
-LASSO_preds <- LASSO(type = "coefficients")
 LASSO_preds <- predict(LASSO, x = Xs_matrix, s = 0.1, mode = "fraction", 
                         type = "coefficients")
 
-LASSO_preds <- coef(LASSO)
+LASSO_Coeffs <- LASSO_preds["coefficients"]
 
-LASSO_Coeffs <- LASSO_preds$coefficients
-LASSO_Coeffs2 <- LASSO_preds["coefficients"]
-
-
-IVs_Selected_by_LASSO <- names(LASSO_Coeffs)
-
-
-Positive_Coeffs <- when(LASSO_Coeffs$coefficients > 0, LASSO)
-Positive_Coeffs
 
 
 Positive_Coeffs <- lapply(LASSO_Coeffs, function(i) i[i > 0])
 
-IVs_Selected_by_LASSO <- lapply(LASSO_Coeffs, names(i[i > 0]))
+IVs_Selected_by_LASSO <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
+IVs_Selected_by_LASSO
 
+True_IVs <- True_IVs[1,]
+True_IVs
 
-
-
-## Write all the Factors/Predictors the 
-## 58,500 LASSO Regressions to a text file.
-getwd()
-setwd("~/DAEN_698/MCS_BM1")
-setwd("~/DAEN_698/MCS_BM1/text & csv files")
-getwd()
-
-write.csv(data.frame(DS_name = DS_names_list, 
-                     Coeff_Estimates = sapply(Positive_Coeffs, toString)), 
-          file = "LASSO_Estimates.csv", row.names = FALSE)
-
-
-BM1_models_2cols <- data.frame(DS_name = DS_names_list, 
-                    IVs_Selected = sapply(IVs_Selected_by_LASSO, toString))
-str(BM1_models_2cols)
-
-BM1_models_1col <- paste(BM1_models_2cols$DS_name, ";  ", 
-                         BM1_models_2cols$IVs_Selected)
-BM1_IVs <- as.data.frame(BM1_models_1col)
-
-
-n_BM1 <- do.call(rbind.data.frame, lapply(
-  strsplit(BM1_IVs$BM1_models_1col, ";  "),
-  function(x) {
-    s <- strsplit(x, "-")
-    c(s[[1]], s[[2]])})) |> setNames(
-      c("Multicollinearity", "Number of True Regressors", 
-        "Error Variance", "Random Dataset Generated #", 
-        "Regresors Selected by LASSO") )
-
-
-write.csv(data.frame(DS_name = DS_names_list, 
-                     IVs_selected = sapply(IVs_Selected_by_LASSO, toString)), 
-          file = "IVs_Selected_by_LASSO.csv", row.names = FALSE)
 
 
 
