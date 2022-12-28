@@ -8,8 +8,9 @@
 # find out which working directory R has defaulted to
 getwd()
 setwd("~/GMU folders (local)/DAEN_698/MCS_BMs 2 & 3")
+setwd("~/EER Project/Scripts")
 # Or, click the Session option in the Ribbon, and in the
-# Set Working Directory's dropdown list, select Choose Directory
+# Set Working Directory's drop down list, select Choose Directory
 # in order to set it manually.
 
 
