@@ -28,9 +28,10 @@ colnames(df) <- c("Y", "X1","X2", "X3", "X4","X5", "X6", "X7","X8", "X9",
                   "X10","X11", "X12", "X13","X14", "X15", "X16","X17", 
                   "X18", "X19","X20", "X21", "X22","X23", "X24", "X25",
                   "X26", "X27", "X28","X29", "X30")
-
 data <- df
 
+All_sample_obs <- data[-1:-3,]
+All_sample_obs <- lapply(All_sample_obs, as.numeric)
 
 
 Y = df$Y
@@ -42,10 +43,7 @@ Y_obs <- as.numeric(Y_obs)
 head(Y_obs)
 
 df$Y = NULL
-
 IV_headers <- df[3, ]
-True_IVs <- df[-2:-3,]
-head(True_IVs)
 
 sample_obs <- df[-1:-3,]
 
