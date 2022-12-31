@@ -88,7 +88,6 @@ datasets <- lapply(filepaths_list, read.csv)
 set.seed(11)      # for reproducibility
 full_models <- vector("list", length = length(datasets))
 BE_fits <- vector("list", length = length(datasets))
-head(BE_fits, n = 3)   # returns a list with 18 elements, all of which are NULL
 
 
 set.seed(11)      # for reproducibility
