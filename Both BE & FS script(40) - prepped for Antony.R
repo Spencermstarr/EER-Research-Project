@@ -17,23 +17,20 @@ setwd()
 # in order to set it manually.
 
 
-### Benchmark 2: 
-### One of the two main versions of the classical method
-### of automated optimal variable selection back before
-### the modern machine learning revolution; namely,
-### the 'Backward Elimination' version of Stepwise Regression.
-
 # load all necessary packages using only 1 command/line
 library_list <- c(library(stats),library(dplyr),library(tidyverse),
                   library(leaps),library(lars),library(tibble),
-                  library(readr),library(stringi),library(purrr))
+                  library(readr),library(stringi),library(purrr),
+                  library(vroom))
 
 
 
 # Extract all of the individual spreadsheet containing workbooks
-# in the file folder called 'sample obs(20 csvs)' which is filled
+# in the file folder called 'last 20' which is filled
 # random synthetic observations to run Lasso, Stepwise, and eventually EER
-# on to compare the results. There are 20 random spreadsheets in this folder
+# on to compare the results. There are 40 random spreadsheets in this folder
+all_data <- vroom(list.files(pattern = 'csv'), id = 'source_file')
+
 filepath <- "C:/Users/Spencer/Documents/EER Project/Data/last 40"
 filepaths_list <- list.files(path = filepath, full.names = TRUE, 
                              recursive = TRUE)
@@ -71,39 +68,37 @@ filepaths_list
 # In order to accomplish this, I will be using the readr library in R.
 ## This line reads all of the data in each of the csv files 
 ## using the name of each store in the list we just created.
-datasets <- lapply(filepaths_list, read.csv)
+datasets <- lapply(filepaths_list, read.csv, header = FALSE)
+
 df<- read.csv("0-11-3-462.csv", header = FALSE)
-True_IVs <- df[1, -1]
-
-VarNames <- c("Y", "X1","X2", "X3", "X4","X5", "X6", "X7","X8", "X9",
-              "X10","X11", "X12", "X13","X14", "X15", "X16","X17", 
-              "X18", "X19","X20", "X21", "X22","X23", "X24", "X25",
-              "X26", "X27", "X28","X29", "X30")
-# change column names of all the columns in the dataframe 'df'
-lapply(datasets, function(i) {
-  colnames <- c("Y", "X1","X2", "X3", "X4","X5", "X6", "X7","X8", "X9",
-                  "X10","X11", "X12", "X13","X14", "X15", "X16","X17", 
-                  "X18", "X19","X20", "X21", "X22","X23", "X24", "X25",
-                  "X26", "X27", "X28","X29", "X30") })
+All_Headers <- df[3, ]
+IV_headers <- df[3, -1]
 
 
-All_sample_obs <- datasets[-1:-3,]
-All_sample_obs <- lapply(All_sample_obs, as.numeric)
-All_sample_obs <- as.data.frame(All_sample_obs)
-All_sample_obs <- round(All_sample_obs, 3)
+# change column names of all the columns in the dataframe 'datasets'
+datasets <- lapply(datasets, function(i) { 
+   colnames(i) <- c("Y", "X1","X2", "X3", "X4","X5", "X6", "X7", "X8", "X9", 
+                   "X10","X11", "X12", "X13","X14", "X15", "X16","X17",
+                   "X18", "X19","X20", "X21", "X22","X23", "X24", "X25", 
+                   "X26", "X27", "X28","X29", "X30") })
+                                                       
+Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
+True_IVs <- lapply(datasets, function(j) {j[1:3, -1]})
+True_IVs <- lapply(True_IVs, function(j) {j[-2, ]})
 
-Y = df$Y
-Y_obs <- Y      #just in case I need to reset
-Y_obs <- Y_obs[-1:-3]
-Y_obs <- as.numeric(Y_obs)
-Y_obs <- round(Y_obs, 3)
+Structural_IVs <- lapply(True_IVs, function(j) {
+  j[[1]][[1]][1] <- as.numeric(j[[1]][[1]][1]) * j[[1]][[1]][2] })
 
-df$Y = NULL
-IV_headers <- datasets[3, ]
+  
+datasets <- lapply(datasets, function(i) {i[-1:-3, ]})
+datasets <- lapply(datasets, \(X) { lapply(X, as.numeric) })
+datasets <- lapply(datasets, function(i) { as.data.frame(i) })
+datasets <- lapply(datasets, \(X) { round(X, 3) })
 
-
-
-
+obs_on_IVs <- lapply(datasets, function(i) {i[-1:-2, ]})
+obs_on_IVs <- lapply(obs_on_IVs, \(X) { lapply(X, as.numeric) })
+obs_on_IVs <- lapply(obs_on_IVs, function(i) { as.data.frame(i) })
+obs_on_IVs <- lapply(obs_on_IVs, \(X) { round(X, 3) })
 
 
 
@@ -114,14 +109,15 @@ IV_headers <- datasets[3, ]
 library(parallel)
 CL <- makeCluster(detectCores() - 1L)
 clusterExport(CL, c('datasets'))
+
 set.seed(11)      # for reproducibility
-BE.fits <- parLapply(CL, datasets, \(X) {
-    full_models <- lm(Y ~ ., X)
+system.time(BE.fits <- parLapply(CL, datasets, \(X) {
+    full_models <- lm(X$V1 ~ ., X)
     back <- step(full_models, scope = formula(full_models), 
-                    dir = 'back', trace = FALSE) })
-stopCluster(CL)
+                    direction = 'back', trace = FALSE) }) )
 
 BE_Coeffs <- lapply(seq_along(BE.fits), function(i) coef(BE.fits[[i]]))
+stopCluster(CL)
 
 IVs_Selected_by_BE <- lapply(seq_along(BE.fits), 
                              \(i) names(coef(BE.fits[[i]])[-1]))
@@ -133,18 +129,39 @@ IVs_Selected_by_BE <- lapply(seq_along(BE.fits),
 # of X#s to select.
 ## print out the output formatted the way Dr. Davies asked for!
 BM2_models_2cols <- data.frame(DS_name = DS_names_list, 
-                          Variables_selected = sapply(IVs_Selected_by_BE, 
-                                                toString))
+                               IVs_selected = sapply(IVs_Selected_by_BE, toString))
 
 BM2_models_1col <- paste(BM2_models_2cols$DS_name, ";", 
                          BM2_models_2cols$IVs_Selected)
 
 write.csv(data.frame(DS_name = DS_names_list, 
-                     Variables_selected = sapply(IVs_Selected_by_BE, 
-                                                 toString)), 
+                     IVs_selected = sapply(IVs_Selected_by_BE, toString)), 
           file = "IVs_Selected_by_BE(20).csv", row.names = FALSE)
 
 
+
+# change column names of all the columns in the dataframe 'structural_IVs'
+lapply(Structural_IVs, function(i) { 
+  colnames(i) <- c("X1","X2", "X3", "X4","X5", "X6", "X7", "X8", "X9", 
+                   "X10","X11", "X12", "X13","X14", "X15", "X16","X17",
+                   "X18", "X19","X20", "X21", "X22","X23", "X24", "X25", 
+                   "X26", "X27", "X28","X29", "X30") })
+
+True_Regressors <- lapply(Structural_IVs, function(i) {
+                          names(i)[i == 1] })
+True_Regressors
+
+
+### Count up how many Variables Selected match  the true 
+### structural equation variables for that dataset in order
+### to measure BE's performance.
+True_Pos_list <- lapply(datasets, function(i) {sum(names(Structural_IVs) %in% 
+                              IVs_Selected_by_BE$coefficients) })
+Total_Pos_list <- length(True_Regressors)
+
+True_Pos_list <- lapply(seq_along(datasets), \(i)
+                        length(intersect(IVs_Selected_by_BE, 
+                                         True_Regressors)) )
 
 
 
@@ -157,10 +174,10 @@ CL <- makeCluster(detectCores() - 1L)
 clusterExport(CL, c('datasets'))
 set.seed(11)      # for reproducibility
 FS.fits <- parLapply(CL, datasets, \(X) {
-  nulls <- lm(Y ~ 1, X)
-  full_models <- lm(Y ~ ., X)
+  nulls <- lm(X$V1 ~ 1, X)
+  full_models <- lm(X$V1 ~ ., X)
   forward <- step(object = nulls, scope = formula(full_models), 
-                  dir = 'forward', trace = FALSE) })
+                  direction = 'forward', trace = FALSE) })
 
 FS_Coeffs <- lapply(seq_along(FS.fits), function(i) coef(FS.fits[[i]]))
 
