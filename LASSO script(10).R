@@ -77,7 +77,7 @@ All_Headers <- df[3, ]
 IV_headers <- df[3, -1]
 
 
-# change column names of all the columns in the dataframe 'csvs'
+# change column names of all the columns in the dataframe 'datasets'
 datasets <- lapply(datasets, function(dataset_i) { 
   colnames(dataset_i) <- c("Y", "X1", "X2", "X3", "X4", "X5", "X6", "X7", 
                            "X8", "X9", "X10", "X11", "X12", "X13", "X14", 
@@ -132,4 +132,24 @@ Positive_Coeffs <- lapply(LASSO_Coeffs, function(i) i[i > 0])
 
 IVs_Selected_by_LASSO <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
 IVs_Selected_by_LASSO
+
+
+
+
+
+
+### Count up how many Variables Selected match  the true 
+### structural equation variables for that dataset in order
+### to measure LASSO's performance.
+Total_Positives <- lapply(True_Regressors, function(i) { length(i) })
+
+True_Pos_list1 <- lapply(seq_along(datasets), \(i)
+                        length(intersect(IVs_Selected_by_LASSO, 
+                                         True_Regressors)) )
+
+True_Pos_list2 <- lapply(seq_along(datasets), \(i)
+                         sum(IVs_Selected_by_LASSO %in% True_Regressors)) 
+
+
+
 
