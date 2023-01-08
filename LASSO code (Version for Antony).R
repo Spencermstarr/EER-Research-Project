@@ -10,7 +10,7 @@ library_list <- c(library(plyr),library(dplyr),library(tidyverse),
 
 # these 2 lines together create a simple character list of 
 # all the file names in the file folder of datasets you created
-folderpath <- "C:/Users/Spencer/Documents/EER Project/last 40"
+folderpath <- "C:/Users/Spencer/Documents/EER Project/Data/last 40"
 paths_list <- list.files(path = folderpath, full.names = T, recursive = T)
 
 # reformat the names of each of the csv file formatted datasets
@@ -34,7 +34,7 @@ paths_list = paths_list[my_order]
 
 # this line reads all of the data in each of the csv files 
 # using the name of each store in the list we just created
-CL <- makeCluster(detectCores() - 1L)
+CL <- makeCluster(detectCores() - 2L)
 clusterExport(CL, c('paths_list'))
 system.time( datasets <- parLapply(CL, paths_list, fread) )
 #system.time( datasets <- lapply(paths_list, fread) )
@@ -62,7 +62,7 @@ True_Regressors <- lapply(Structural_IVs_chr, function(i) {
 system.time(datasets <- lapply(datasets, function(i) {i[-1:-3, ]}))
 system.time(datasets <- lapply(datasets, \(X) { lapply(X, as.numeric) }))
 system.time(datasets <- lapply(datasets, function(i) { as.data.table(i) }))
-#datasets <- lapply(datasets, \(X) { round(X, 2) })
+datasets <- lapply(datasets, \(X) { round(X, 3) })
 
 
 
@@ -75,7 +75,8 @@ system.time(datasets <- lapply(datasets, function(i) { as.data.table(i) }))
 library(elasticnet)
 set.seed(11)     # to ensure replicability
 system.time(LASSO_fits <- parLapply(CL, datasets, function(i) 
-               enet(x = as.matrix(select(i, starts_with("X"))), 
+               elasticnet::enet(x = as.matrix(dplyr::select(i, 
+                                                     starts_with("X"))), 
                y = i$Y, lambda = 0, normalize = FALSE)))
 #stopCluster(CL3)
 
@@ -84,7 +85,8 @@ system.time(LASSO_fits <- parLapply(CL, datasets, function(i)
 # Press Run or hit Ctrl+Enter only once for the 5 lines below
 LASSO_Coeffs <- lapply(LASSO_fits, 
                        function(i) predict(i, 
-                                           x = as.matrix(select(i, starts_with("X"))), 
+                                           x = as.matrix(dplyr::select(i, 
+                                                                starts_with("X"))), 
                                            s = 0.1, mode = "fraction", 
                                            type = "coefficients")[["coefficients"]])
 
@@ -95,9 +97,6 @@ stopCluster(CL)
 ### which are 'selected' or chosen for each individual dataset.
 # Press Run or hit Ctrl+Enter
 IVs_Selected_by_LASSO <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
-write.csv(data.frame(DS_name = DS_names_list, 
-                     IVs_selected = sapply(IVs_Selected_by_LASSO, toString)), 
-          file = "IVs_Selected_by_LASSO.csv", row.names = FALSE)
 
 
 
