@@ -34,10 +34,9 @@ paths_list = paths_list[my_order]
 
 # this line reads all of the data in each of the csv files 
 # using the name of each store in the list we just created
-#CL <- makeCluster(detectCores() - 1L)
-#clusterExport(CL, c('paths_list'))
-#system.time( datasets <- parLapply(CL, paths_list, fread) )
-datasets <- parLapply(CL, paths_list, function(i) {fread(i)})
+CL <- makeCluster(detectCores() - 1L)
+clusterExport(CL, c('paths_list'))
+system.time( datasets <- parLapply(CL, paths_list, fread) )
 #system.time( datasets <- lapply(paths_list, fread) )
 #stopCluster(CL)
 
