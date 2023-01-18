@@ -77,14 +77,12 @@ datasets <- lapply(datasets, function(dataset_i) {
                            "X23","X24","X25","X26","X27","X28","X29","X30")
   dataset_i })
 
-Structural_IVs_chr <- lapply(datasets, function(j) {j[1, -1]})
-
-True_Regressors <- lapply(Structural_IVs_chr, function(i) 
+Structural_Variables <- lapply(datasets, function(j) {j[1, -1]})
+True_Regressors <- lapply(Structural_Variables, function(i) 
 { names(i)[i == 1] })
 
-
-# change column names of all the columns in the dataframe 'structural_IVs'
-Structural_IVs_chr <- lapply(Structural_IVs_chr, function(dataset_i) {
+# change column names of all the columns in the dataframe 'Structural_Variables'
+Structural_Variables <- lapply(Structural_Variables, function(dataset_i) {
   colnames(dataset_i) <- c("X1","X2", "X3", "X4","X5", "X6", "X7", "X8", "X9", 
                    "X10","X11", "X12", "X13","X14", "X15", "X16","X17",
                    "X18", "X19","X20", "X21", "X22","X23", "X24", "X25", 
@@ -99,26 +97,46 @@ datasets <- lapply(datasets, \(X) { round(X, 3) })
 
 
 
-
 ### Benchmark 2: Run a Backward Elimination Stepwise Regression
 ### function on each of the  csvs.
 ### Assign the full models to their corresponding csvs and
 ### store these in the object "all_regressors_models"
 set.seed(11)      # for reproducibility
-BE_fits <- lapply(datasets, \(i) {
+BE_fits <- lapply(X = datasets, \(i) {
     full_models <- lm(i$Y ~ ., data = i)
     backward <- ols_step_backward_aic(full_models) })
 
-BE_fits <- lapply(seq_along(datasets), \(X) {
-  full_models <- lm(datasets[[X]]$Y ~ ., data = datasets[[X]])
+BE_fits <- lapply(seq_along(datasets), \(i) {
+  full_models <- lm(i$Y ~ ., data = i)
   backward <- ols_step_backward_aic(full_models) })
 
-BE_fits <- lapply(seq_along(datasets), \(X) {
-  full_models <- lm(X$Y ~ ., as.data.table(X))
+BE_fits <- lapply(seq_along(datasets), \(i) {
+  full_models <- lm(datasets[[i]]$Y ~ ., data = datasets[[i]])
+  backward <- ols_step_backward_aic(full_models) })
+
+BE_fits <- lapply(seq_along(datasets), \(i) {
+  full_models <- lm(i$Y ~ ., as.data.frame(i))
   backward <- ols_step_backward_aic(full_models) })
 
 full <- lm(datasets[[5]]$Y ~ ., data = datasets[[5]])
 backward_elimination <- ols_step_backward_aic(full)
+
+BE.fits <- lapply(X = datasets, \(X) {
+  full_models <- lm(X$Y ~ ., X)
+  back <- stats::step(full_models, scope = formula(full_models), 
+                      direction = 'backward', trace = FALSE) })
+
+
+BE_fits <- lapply(X = seq_along(datasets), \(ds) {
+  full_models <- lm(ds$Y ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20+X21+X22+X23+X24+X25+X26+X27+X28+X29+X30, 
+                    data = ds)
+  backward <- ols_step_backward_aic(full_models) })
+
+BE_fits <- lapply(X = seq_along(datasets), \(ds) {
+  full_models <- lm(ds$Y ~ X1+X2+X3+X4+X5+X6+X7+X8+X9+X10+X11+X12+X13+X14+X15+X16+X17+X18+X19+X20+X21+X22+X23+X24+X25+X26+X27+X28+X29+X30, 
+                    data = datasets[ds])
+  backward <- ols_step_backward_aic(full_models) })
+
 
 
 
