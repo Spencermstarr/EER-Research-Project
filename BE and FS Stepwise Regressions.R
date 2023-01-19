@@ -158,13 +158,14 @@ num_OMVs <- sum(BM2_TPRs < 1, na.rm = TRUE)
 BM2_FPRs <- unlist(BE_FPRs)
 BM2_mean_FPR <- round(mean(BM2_FPRs), 3)
 num_null_FPR <- sum(BM2_FPRs == 0, na.rm = TRUE)
+# number of models with at least one extraneous variable selected
+num_Extraneous <- sum(BM2_FPRs > 0)
 
 # True Negative Rates as a vector rather than a list
 BM2_TNRs <- unlist(BE_TNRs)
 BM2_mean_TNR <- round(mean(BM2_TNRs), 3)
 
-# number of models with at least one extraneous variable selected
-num_Extraneous <- sum(BM2_FPRs > 0)
+
 # Overspecified Regression Specifications Selected by FS
 N_Over = sum( (BM2_TPRs > 0) & (BM2_TPRs == 1) & (BM2_TNRs == 1) )
 # Number of Underspecified Regression Specifications Selected by BE
