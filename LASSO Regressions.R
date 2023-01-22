@@ -1,6 +1,8 @@
-# This script required the user to hit Run either by the button
-# in the top right corner of this panel, or by hitting Ctrl+Alt+R
-setwd("D:/EER")
+### This script required the user to hit Run either by the button
+### in the top right corner of this panel, or by hitting Ctrl+Alt+R
+#rm(list = ls())
+#setwd("D:/EER")
+setwd("D:/EER folder")
 getwd()
 
 # load all necessary packages
@@ -56,8 +58,8 @@ datasets <- lapply(datasets, function(dataset_i) {
                             "X23","X24","X25","X26","X27","X28","X29","X30")
   dataset_i })
 
-system.time(Structural_IVs_chr <- lapply(datasets, function(j) {j[1, -1]}))
-True_Regressors <- lapply(Structural_IVs_chr, function(i) {
+system.time(Structural_Variables <- lapply(datasets, function(j) {j[1, -1]}))
+Correctly_Selected_Variables <- lapply(Structural_Variables, function(i) {
   names(i)[i == 1] })
 
 # truncate & transform the datasets list before running the regressions
@@ -108,20 +110,20 @@ write.csv(
 ### Count up how many Variables Selected match  the true 
 ### structural equation variables for that dataset in order
 ### to measure LASSO's performance.
-BM1_NPs <- lapply(True_Regressors, function(i) { length(i) })
+BM1_NPs <- lapply(Correctly_Selected_Variables, function(i) { length(i) })
 
 system.time(BM1_TPs <- lapply(seq_along(datasets), \(i)
                               sum(IVs_Selected_by_LASSO[[i]] %in% 
-                                    True_Regressors[[i]]))) 
+                                    Correctly_Selected_Variables[[i]]))) 
 
 BM1_TPRs = lapply(seq_along(datasets), \(j)
                   j <- (BM1_TPs[[j]]/BM1_NPs[[j]]) )
 
 # the number of False Positives & True Negative for each Regression
-BM1_NNs <- lapply(True_Regressors, function(i) {30 - length(i)})
+BM1_NNs <- lapply(Correctly_Selected_Variables, function(i) {30 - length(i)})
 BM1_FPs <- lapply(seq_along(datasets), \(i)
                   sum(!(IVs_Selected_by_LASSO[[i]] %in% 
-                          True_Regressors[[i]]))) 
+                          Correctly_Selected_Variables[[i]]))) 
 BM1_TNs <- lapply(seq_along(datasets), \(K) 30 - BM1_TPs[[K]])
 # the False Positive Rate = FP/(FP + TN)
 BM1_FPRs = lapply(seq_along(datasets), \(j)
@@ -196,7 +198,7 @@ tail(DS_names_list)
 #          file = "Dataset range for 'top 100'.csv", 
 #          row.names = FALSE)
 length(datasets)
-rm(CL, Structural_IVs_chr)
+rm(CL, Structural_Variables)
 rm(IVs_Selected_by_LASSO, LASSO_fits, LASSO_Coeffs)
 rm(BM1_FPRs, BM1_FPs, BM1_NNs, BM1_NPs, BM1_TNRs, BM1_TPRs, BM1_TPs)
 rm(FPRs, TPRs, TNRs, Headers, num_null_FPR)

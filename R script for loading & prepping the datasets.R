@@ -5,7 +5,9 @@
 # does so we can compare its results with Dr. Davies' EER procedure.
 
 ## This script in its entirety can be run by the user by hitting Ctrl+Alt+R.
-setwd("D:/EER")
+#rm(list = ls())
+setwd("C:/Users/Spencer/Documents/EER Project")
+#setwd("D:/EER")
 getwd()
 
 # load all necessary packages
@@ -24,7 +26,7 @@ library(parallel)
 # in the file folder called 'Data' which is filled
 # random synthetic observations to run FS, Stepwise, and eventually EER
 # on to compare the results. There are 260k spreadsheets in this folder
-folderpath <- "C:/Users/Spencer/Documents/EER Project/Data/csvs/0.25-15-1-1 to 0.25-15-10-500"
+folderpath <- "C:/Users/Spencer/Documents/EER Project/Data/top 100"
 system.time(paths_list <- list.files(path = folderpath, 
                                      full.names = TRUE,  
                                      recursive = TRUE))
@@ -62,15 +64,27 @@ datasets <- lapply(datasets, function(dataset_i) {
                            "X16","X17","X18","X19","X20","X21","X22",
                            "X23","X24","X25","X26","X27","X28","X29","X30")
   dataset_i })
-Structural_IVs_chr <- lapply(datasets, function(j) {j[1, -1]})
-True_Regressors <- lapply(Structural_IVs_chr, function(i) {names(i)[i == 1]})
+Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
+True_Regressors <- lapply(Structural_IVs, function(i) {names(i)[i == 1]})
+
+# change column names of all the columns in the dataframe 'Structural_Variables'
+Structural_IVs <- lapply(Structural_IVs, function(dataset_i) {
+  colnames(dataset_i) <- c("X1","X2", "X3", "X4","X5", "X6", "X7", "X8", "X9", 
+                           "X10","X11", "X12", "X13","X14", "X15", "X16","X17",
+                           "X18", "X19","X20", "X21", "X22","X23", "X24", "X25", 
+                           "X26", "X27", "X28","X29", "X30")
+  dataset_i})
 
 # truncate & transform the datasets list before running the regressions
 datasets <- lapply(datasets, function(i) {i[-1:-3, ]})
 system.time(datasets <- lapply(datasets, \(X) { lapply(X, as.numeric) }))
 datasets <- lapply(datasets, function(i) { as.data.table(i) })
 
-save.image("D:/EER/Saved WorkSpaces/Workspaces for dataset folders starting with '0.25'/datasets WorkSpace for 0.25-15-1-1 to 0.25-15-10-500.RData")
+stopCluster(CL)
+rm(CL)
+#save.image("D:/EER/Saved WorkSpaces/Workspaces for dataset folders starting with '0.25'/datasets WorkSpace for 0.25-15-1-1 to 0.25-15-10-500.RData")
+
+#save.image("D:/EER folder/WorkSpaces/datasets WorkSpace for 0-5-1-1 to 0-6-10-500 datasets.RData")
 
 
 
