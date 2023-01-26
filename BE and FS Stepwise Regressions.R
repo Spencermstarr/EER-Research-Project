@@ -5,15 +5,15 @@
 ### does so we can compare its results with Dr. Davies' EER procedure.
 
 ## This script in its entirety can be run by hitting Ctrl+Alt+R.
-rm(list = ls())
+#rm(list = ls())
 #setwd("D:/EER")
 #setwd("D:/EER folder")
 getwd()
 
+
 # load all necessary packages
 library(plyr)
 library(dplyr)
-library(readr)
 library(stringi)
 library(purrr)
 library(stats)
@@ -27,8 +27,8 @@ library(parallel)
 # in the file folder called 'Data' which is filled
 # random synthetic observations to run FS, Stepwise, and eventually EER
 # on to compare the results. There are 260k spreadsheets in this folder.
-#fldpth <- "C:/Users/Spencer/OneDrive/Documents/Analytics Projects/Estimated Exhaustive Regression Project/Data/csvs/0.25-3-1-1 to 0.25-4-10-500"
-fldpth <- "C:/Users/Spencer/Documents/EER Project/csvs/0.25-3-1-1 to 0.25-4-10-500"
+#fldpth <- "C:/Users/Spencer/OneDrive/Documents/Analytics Projects/Estimated Exhaustive Regression Project/Data/csvs/0.75-15-1-1 to 0.75-15-10-500"
+fldpth <- "C:/Users/Spencer/Documents/EER Project/csvs/0.75-15-1-1 to 0.75-15-10-500"
 paths_list <- list.files(path = fldpth, full.names = T, recursive = T)
 
 # shorten the names of each of the datasets corresponding to 
@@ -59,7 +59,7 @@ paths_list = paths_list[my_order]
 ## (all data.tables are data.frames) and stores all of N data.tables
 ## in a list object.
 #system.time( datasets <- lapply(paths_list, fread) )
-CL <- makeCluster(detectCores() - 4L)
+CL <- makeCluster(detectCores() - 3L)
 clusterExport(CL, c('paths_list'))
 system.time(datasets <- parLapply(cl = CL, X = paths_list, 
                                   fun = data.table::fread))
@@ -72,13 +72,12 @@ datasets <- lapply(datasets, function(dataset_i) {
                            "X23","X24","X25","X26","X27","X28","X29","X30")
   dataset_i })
 
-system.time(Structural_Variables <- lapply(datasets, function(j) {j[1, -1]}))
-system.time(
-  Correctly_Selected_Variables <- lapply(Structural_Variables, function(i) 
-    { names(i)[i == 1] }))
+Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
+Structural_Variables <- lapply(Structural_IVs, function(i) 
+    { names(i)[i == 1] })
 
-# change column names of all the columns in the dataframe 'Structural_Variables'
-Structural_Variables <- lapply(Structural_Variables, function(dataset_i) {
+# change column names of all the columns in the dataframe 'Structural_IVs'
+Structural_IVs <- lapply(Structural_IVs, function(dataset_i) {
   colnames(dataset_i) <- c("X1","X2","X3", "X4","X5","X6","X7","X8","X9",
                            "X10","X11","X12","X13","X14","X15","X16","X17",
                            "X18","X19","X20","X21","X22","X23","X24","X25",
@@ -89,14 +88,15 @@ rm(CL)
 
 
 # truncate & transform the datasets list before running the regressions
-system.time(datasets <- lapply(datasets, function(i) {i[-1:-3, ]}))
+datasets <- lapply(datasets, function(i) {i[-1:-3, ]})
 system.time(datasets <- lapply(datasets, \(X) { lapply(X, as.numeric) }))
 system.time(datasets <- lapply(datasets, function(i) { as.data.table(i) }))
 
-#save.image("D:/EER/Saved WorkSpaces/Workspaces for dataset folders starting with '0.25'/datasets WorkSpace for '0.25-3-1-1 to 0.25-4-10-500'.RData")
-#save.image("D:/EER folder/WorkSpaces/datasets WorkSpace for '0.25-3-1-1 to 0.25-4-10-500'.RData")
-save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/Estimated Exhaustive Regression Project/Saved WorkSpaces/datasets WorkSpace for '0.25-3-1-1 to 0.25-4-10-500'.RData")
 
+#save.image("D:/EER/Saved WorkSpaces/Workspaces for dataset folders starting with '0.25'/datasets WorkSpace for '0.75-15-1-1 to 0.75-15-10-500'.RData")
+#save.image("D:/EER folder/WorkSpaces/datasets WorkSpace for '0.75-15-1-1 to 0.75-15-10-500'.RData")
+save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/Saved WorkSpaces/datasets WorkSpace for '0.75-15-1-1 to 0.75-15-10-500'.RData")
+#save.image("C:/Users/Spencer/Documents/EER Project/WorkSpaces/datasets WorkSpace for '0.75-15-1-1 to 0.75-15-10-500'.RData")
 
 
 
@@ -106,17 +106,18 @@ save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/Estimated Exh
 ### Step 2: Run a Backward Elimination Stepwise Regression
 ### function on each of the 260,000 datasets.
 #library(parallel)
-CL <- makeCluster(detectCores() - 3L)
+CL <- makeCluster(detectCores() - 4L)
 clusterExport(CL, c('datasets'))
 set.seed(11)      # for reproducibility
-system.time( BE.fits <- parLapply(cl = CL, X = datasets, \(X) {
-  full_models <- lm(X$Y ~ ., X)
+system.time( BE.fits <- parLapply(cl = CL, X = datasets, \(ds_i) {
+  full_models <- lm(ds_i$Y ~ ., data = ds_i)
   back <- stats::step(full_models, scope = formula(full_models), 
                       direction = 'back', trace = FALSE) }) )
 
 # extract the coefficients and their corresponding variable names
 BE_Coeffs <- lapply(seq_along(BE.fits), function(i) coef(BE.fits[[i]]))
 #stopCluster(CL)
+#rm(CL)
 
 # extract the names of all IVs selected by them without their intercepts
 IVs_Selected_by_BE <- lapply(seq_along(BE.fits), 
@@ -127,19 +128,19 @@ IVs_Selected_by_BE <- lapply(seq_along(BE.fits),
 ### structural equation variables for that dataset in order
 ### to measure Backward Stepwise's performance.
 # the True Positive Rate
-num_of_Positives <- lapply(Correctly_Selected_Variables, function(i) { length(i) })
+num_of_Positives <- lapply(Structural_Variables, function(i) { length(i) })
 
 BE_TPs <- lapply(seq_along(datasets), \(i)
                               sum(IVs_Selected_by_BE[[i]] %in% 
-                                    Correctly_Selected_Variables[[i]]))
+                                    Structural_Variables[[i]]))
 BE_TPRs = lapply(seq_along(datasets), \(j)
                   j <- (BE_TPs[[j]]/num_of_Positives[[j]]) )
 
 # the number of False Positives & True Negative for each Regression
-num_of_Negatives <- lapply(Correctly_Selected_Variables, function(i) {30 - length(i)})
+num_of_Negatives <- lapply(Structural_Variables, function(i) {30 - length(i)})
 BE_FPs <- lapply(seq_along(datasets), \(i)
                  sum(!(IVs_Selected_by_BE[[i]] %in% 
-                         Correctly_Selected_Variables[[i]]))) 
+                         Structural_Variables[[i]]))) 
 BE_TNs <- lapply(seq_along(datasets), \(K) 30 - BE_TPs[[K]])
 
 # the False Positive Rate = FP/(FP + TN)
@@ -191,8 +192,8 @@ Headers <- c("Underspecified Models Selected by BE",
 BM2_PMs2 <- data.frame(N_Under, N_Correct, N_Over)
 colnames(BM2_PMs2) <- Headers
 
-Headers <- c("BE Models with at least one Omitted Variable",
-             "BE Models with at least one Extra Variable")
+Headers <- c("Models with at least one Omitted Variable",
+             "Models with at least one Extra Variable")
 BM2_PMs3 <- data.frame(num_OMVs, num_Extraneous)
 colnames(BM2_PMs3) <- Headers
 
@@ -213,9 +214,9 @@ BE_performance_metrics <- list(BM2_PMs1, BM2_PMs2, BM2_PMs3)
 #CL <- makeCluster(detectCores() - 4L)
 #clusterExport(CL, c('datasets'))
 set.seed(11)      # for reproducibility
-system.time( FS.fits <- parLapply(cl = CL, X = datasets, \(X) {
-  nulls <- lm(X$Y ~ 1, X)
-  full_models <- lm(X$Y ~ ., X)
+system.time( FS.fits <- parLapply(cl = CL, X = datasets, \(ds_i) {
+  nulls <- lm(ds_i$Y ~ 1, data = ds_i)
+  full_models <- lm(ds_i$Y ~ ., ds_i)
   forward <- stats::step(object = nulls, direction = 'forward',
                          scope = formula(full_models), trace = FALSE) }) )
 
@@ -235,14 +236,14 @@ IVs_Selected_by_FS <- lapply(seq_along(FS.fits),
 # the True Positive Rate
 FS_TPs <- lapply(seq_along(datasets), \(i)
                               sum(IVs_Selected_by_FS[[i]] %in% 
-                                    Correctly_Selected_Variables[[i]])) 
+                                    Structural_Variables[[i]])) 
 FS_TPRs = lapply(seq_along(datasets), \(j)
                   j <- (FS_TPs[[j]]/num_of_Positives[[j]]) )
 
 # the number of total Negatives & False Positives for each Regression
 FS_FPs <- lapply(seq_along(datasets), \(i)
                  sum(!(IVs_Selected_by_FS[[i]] %in% 
-                         Correctly_Selected_Variables[[i]]))) 
+                         Structural_Variables[[i]]))) 
 # now calculate the # of True Negatives for each
 FS_TNs <- lapply(seq_along(datasets), \(K)  30 - FS_TPs[[K]])
 # the False Positive Rate = FP/(FP + TN)
@@ -283,8 +284,8 @@ N_Under = sum( (FS_TPRs < 1) & (FS_FPRs == 0) )
 # Number of Correctly Specified Regressions Selected by FS
 N_Correct <- sum( (FS_TPRs == 1) & (FS_FPRs == 0) & (FS_TNRs == 1) )
 
-Headers <- c("BE's True Positive Rate", "BE's True Negative Rate", 
-             "BE's False Positive Rate")
+Headers <- c("True Positive Rate", "True Negative Rate", 
+             "False Positive Rate")
 BM3_PMs1 <- data.frame(BM3_mean_TPR, BM3_mean_TNR, BM3_mean_FPR)
 colnames(BM3_PMs1) <- Headers
 
@@ -294,27 +295,27 @@ Headers <- c("Underspecified Models Selected by FS",
 BM3_PMs2 <- data.frame(N_Under, N_Correct, N_Over)
 colnames(BM3_PMs2) <- Headers
 
-Headers <- c("FS Models with at least one Omitted Variable",
-             "FS Models with at least one Extra Variable")
+Headers <- c("Models with at least one Omitted Variable",
+             "Models with at least one Extra Variable")
 BM3_PMs3 <- data.frame(num_OMVs, num_Extraneous)
 colnames(BM3_PMs3) <- Headers
 
 # Or, just print out this instead of having to print out 3 different things
 FS_performance_metrics <- list(BM3_PMs1, BM3_PMs2, BM3_PMs3)
 
+
 df <- data.frame(BE = BE_performance_metrics, FS = FS_performance_metrics)
 write.csv(df, 
-          file = "(Corrected)SR's Performance on the DSs from 0.25-3-1-1 to 0.25-4-10-500.csv",
+          file = "SR's Performance on the DSs from 0.75-15-1-1 to 0.75-15-10-500.csv",
           row.names = FALSE)
-
 
 ## Create a single csv file that has the Regressors selected by both!
 write.csv(data.frame(DS_name = DS_names_list, 
                      BE_Regressors_Selected = sapply(IVs_Selected_by_BE, toString), 
                      FS_Regressors_Selected = sapply(IVs_Selected_by_FS, toString),
-                     Structural_Variables = sapply(Correctly_Selected_Variables, 
+                     Structural_Variables = sapply(Structural_Variables, 
                                                    toString)),
-          file = "Regressors Selected by SR for DSs from 0.25-3-1-1 to 0.25-4-10-500.csv",
+          file = "Regressors Selected by SR for DSs from 0.75-15-1-1 to 0.75-15-10-500.csv",
           row.names = FALSE)
 
 
@@ -328,5 +329,5 @@ getwd()
 #           file = "Dataset range for the 3rd subset of 10k dataset.csv",
 #           row.names = FALSE)
 
+#save.image("D:/EER folder/WorkSpaces/BE & FS WorkSpace for the 10k '0.75-15-1-1 to 0.75-15-10-500' datasets.RData")
 
-#save.image("D:/EER folder/WorkSpaces/BE & FS WorkSpace for the 10k '0.25-3-1-1 to 0.25-4-10-500' datasets.RData")

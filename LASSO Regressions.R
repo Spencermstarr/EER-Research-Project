@@ -1,16 +1,17 @@
 ### This script required the user to hit Run either by the button
 ### in the top right corner of this panel, or by hitting Ctrl+Alt+R
+
 #rm(list = ls())
 #setwd("D:/EER")
-setwd("D:/EER folder")
+#setwd("D:/EER folder")
+setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark")
+
 getwd()
 
 # load all necessary packages
 library(plyr)
 library(dplyr)
-library(readr)
 library(stringi)
-library(purrr)
 library(stats)
 library(leaps)
 library(lars)
@@ -21,7 +22,7 @@ library(parallel)
 
 # these 2 lines together create a simple character list of 
 # all the file names in the file folder of datasets you created
-folderpath <- "C:/Users/Spencer/Documents/EER Project/csvs/top 100"
+folderpath <- "C:/Users/Spencer/Documents/EER Project/csvs/0.5-3-1-1 to 0.5-4-10-500"
 paths_list <- list.files(path = folderpath, full.names = T, recursive = T)
 
 # shorten the names of each of the datasets corresponding to 
@@ -49,6 +50,7 @@ parallel::clusterExport(CL, c('paths_list'))
 system.time(datasets <- parLapply(cl = CL, X = paths_list, 
                                   fun = data.table::fread))
 #stopCluster(CL)
+#rm(CL)
 
 # change column names of all the columns in the data.table 'datasets'
 datasets <- lapply(datasets, function(dataset_i) { 
@@ -58,14 +60,22 @@ datasets <- lapply(datasets, function(dataset_i) {
                             "X23","X24","X25","X26","X27","X28","X29","X30")
   dataset_i })
 
-system.time(Structural_Variables <- lapply(datasets, function(j) {j[1, -1]}))
-Correctly_Selected_Variables <- lapply(Structural_Variables, function(i) {
+Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
+Structural_Variables <- lapply(Structural_IVs, function(i) {
   names(i)[i == 1] })
+
+Nonstructural_Variables <- lapply(Structural_IVs, function(i) {
+  names(i)[i == 0] })
+
 
 # truncate & transform the datasets list before running the regressions
 system.time(datasets <- lapply(datasets, function(i) {i[-1:-3, ]}))
 system.time(datasets <- lapply(datasets, \(X) { lapply(X, as.numeric) }))
 system.time(datasets <- lapply(datasets, function(i) { as.data.table(i) }))
+
+
+save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/Saved WorkSpaces/datasets WorkSpace for '0.5-3-1-1 to 0.5-4-10-500'.RData")
+
 
 
 
@@ -91,16 +101,22 @@ LASSO_Coeffs <- lapply(LASSO_fits,
                                            s = 0.1, mode = "fraction", 
                                            type = "coefficients")[["coefficients"]])
 stopCluster(CL)
+rm(CL)
+
 
 ### Write my own custom function which will separate out and return a 
 ### new list containing just the Independent Variables
 ### which are 'selected' or chosen for each individual dataset.
-IVs_Selected_by_LASSO <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
+IVs_Selected <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
+
+IVs_Not_Selected <- lapply(LASSO_Coeffs, function(j) names(j[j == 0]))
 
 write.csv(
   data.frame(DS_name = DS_names_list, 
-             IVs_selected = sapply(IVs_Selected_by_LASSO, toString)), 
-  file = "LASSO's Selections for the top 100.csv", 
+             IVs_selected = sapply(IVs_Selected, toString),
+             Structural_Variables = sapply(Structural_Variables, 
+                                           toString)),
+  file = "LASSO's Selections for the DSs from 0.5-3-1-1 to 0.5-4-10-500.csv", 
   row.names = FALSE)
 
 
@@ -110,27 +126,48 @@ write.csv(
 ### Count up how many Variables Selected match  the true 
 ### structural equation variables for that dataset in order
 ### to measure LASSO's performance.
-BM1_NPs <- lapply(Correctly_Selected_Variables, function(i) { length(i) })
+# all of the "Positives"
+BM1_NPs <- lapply(Structural_Variables, function(i) { length(i) })
 
-system.time(BM1_TPs <- lapply(seq_along(datasets), \(i)
-                              sum(IVs_Selected_by_LASSO[[i]] %in% 
-                                    Correctly_Selected_Variables[[i]]))) 
-
+# all the "True Positives"
+BM1_TPs <- lapply(seq_along(datasets), \(i)
+                              sum(IVs_Selected[[i]] %in% 
+                                    Structural_Variables[[i]]))
+# the True Positive Rate
 BM1_TPRs = lapply(seq_along(datasets), \(j)
                   j <- (BM1_TPs[[j]]/BM1_NPs[[j]]) )
 
-# the number of False Positives & True Negative for each Regression
-BM1_NNs <- lapply(Correctly_Selected_Variables, function(i) {30 - length(i)})
+# all of the "Negatives"
+BM1_NNs <- lapply(Structural_Variables, function(i) {30 - length(i)})
+
+# the number of False Positives
 BM1_FPs <- lapply(seq_along(datasets), \(i)
-                  sum(!(IVs_Selected_by_LASSO[[i]] %in% 
-                          Correctly_Selected_Variables[[i]]))) 
-BM1_TNs <- lapply(seq_along(datasets), \(K) 30 - BM1_TPs[[K]])
+                  sum(!(IVs_Selected[[i]] %in% 
+                          Structural_Variables[[i]]))) 
+
+# the number True Negatives for each LASSO
+BM1_TNs <- lapply(seq_along(datasets), \(j)
+                  sum(IVs_Not_Selected[[j]] %in% 
+                        Nonstructural_Variables[[j]]))
+BM1_TNs2 <- lapply(seq_along(datasets), \(K) (30 - BM1_TPs[[K]]))
+
 # the False Positive Rate = FP/(FP + TN)
 BM1_FPRs = lapply(seq_along(datasets), \(j)
                  j <- (BM1_FPs[[j]])/(BM1_FPs[[j]] + BM1_TNs[[j]]))
+# or, another way to calculate it would be
+BM1_FPRs2 = lapply(seq_along(datasets), \(i)
+                  i <- (BM1_FPs[[i]])/(BM1_NNs[[i]]))
 
-# the True Negative Rate
-BM1_TNRs <- lapply(BM1_FPRs, \(i) 
+# the True Negative Rate = TN/(FP + TN)
+BM1_TNRs <- lapply(seq_along(datasets), \(j) 
+                   j <- (BM1_TNs[[j]]/BM1_NNs[[j]]))
+BM1_TNRs2 <- lapply(seq_along(datasets), \(j) 
+                   j <- (BM1_TNs2[[j]]/BM1_NNs[[j]]))
+
+BM1_TNRs3 <- lapply(seq_along(datasets), \(w)
+                    w <- (BM1_TNs[[w]]/(BM1_FPRs[[w]] + BM1_TNRs[[w]])))
+# or, because TNR = 1 - FPR, we can also use
+BM1_TNRs4 <- lapply(BM1_FPRs, \(i) 
                    i <- (1 - i))
 
 
@@ -161,7 +198,7 @@ N_Under = sum( (TPRs < 1) & (FPRs == 0) )
 N_Correct <- sum( (TPRs == 1) & (FPRs == 0) & (TNRs == 1) )
 
 # Overspecified Regression Specifications Selected by LASSO
-N_Over = sum( (FPRs > 0) & (TPRs == 1) & (TNRs == 1) )
+N_Over = sum( (FPRs > 0) & (TPRs == 1) )
 
 
 Headers <- c("Mean True Positive Rate", "Mean True Negative Rate", 
@@ -184,26 +221,27 @@ colnames(PMs3) <- Headers
 rm(num_OMVs, num_Extraneous)
 
 # Or, just print out this instead of having to print out 3 different things
-performance_metrics <- list(PMs1, PMs2, PMs3)
+performance_metrics <- data.frame(PMs1, PMs2, PMs3)
 
 write.csv(performance_metrics, 
-          file = "LASSO's Performance on the top 100.csv", 
+          file = "LASSO's Performance on the datasets from 0.5-3-1-1 to 0.5-4-10-500.csv", 
           row.names = FALSE)
+
 
 length(datasets)
 head(DS_names_list)
 tail(DS_names_list)
 #write.csv(x = data.frame(first_6_datasets = head(DS_names_list), 
 #                         last_6_datasets = tail(DS_names_list)), 
-#          file = "Dataset range for 'top 100'.csv", 
+#          file = "Dataset range for '0.5-3-1-1 to 0.5-4-10-500'.csv", 
 #          row.names = FALSE)
 length(datasets)
 rm(CL, Structural_Variables)
-rm(IVs_Selected_by_LASSO, LASSO_fits, LASSO_Coeffs)
+rm(IVs_Selected, LASSO_fits, LASSO_Coeffs)
 rm(BM1_FPRs, BM1_FPs, BM1_NNs, BM1_NPs, BM1_TNRs, BM1_TPRs, BM1_TPs)
 rm(FPRs, TPRs, TNRs, Headers, num_null_FPR)
 
 length(datasets)
-save.image("D:/EER/Saved WorkSpaces/datasets WorkSpace for top 100.RData")
+#save.image("D:/EER/Saved WorkSpaces/datasets WorkSpace for 0.5-3-1-1 to 0.5-4-10-500.RData")
 rm(performance_metrics, PMs1, PMs2)
 rm(PMs3)
