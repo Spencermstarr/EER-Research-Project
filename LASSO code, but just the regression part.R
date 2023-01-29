@@ -1,7 +1,8 @@
 ### This script can be run by the user by hitting Ctrl+Alt+R.
 
-#rm(list = ls())
-#system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/Saved WorkSpaces/datasets WorkSpace for '0.5-5-1-1 to 0.5-6-10-500'.RData") )
+rm(list = ls())
+load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/datasets WorkSpace for '0.75-15-1-1 to 0.75-15-10-500'.RData")
+#load("C:/Users/Spencer/Documents/EER Project/WorkSpaces/datasets WorkSpace for '0.75-15-1-1 to 0.75-15-10-500'.RData")
 #setwd("D:/Estimated Exhaustive Regression/LASSO Regressions")
 setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark")
 getwd()
@@ -19,6 +20,7 @@ library(parallel)
 #Structural_IVs <- Structural_Variables
 #rm(Structural_Variables, fldpth, my_order)
 #Structural_Variables <- Correctly_Selected_Variables
+#Structural_Variables <- True_Regressors
 
 
 # This function fits all 260,000 LASSO regressions for/on
@@ -54,14 +56,16 @@ LASSO_Coeffs <- lapply(LASSO_fits,
 ### new list containing just the Independent Variables
 ### which are 'selected' or chosen for each individual dataset.
 # Press Run or hit Ctrl+Enter
-IVs_Selected_by_LASSO <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
+IVs_Selected <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
+IVs_Not_Selected <- lapply(LASSO_Coeffs, function(j) names(j[j == 0]))
 
+setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark/Variables Selected")
 write.csv(data.frame(DS_name = DS_names_list, 
-                     Variables_Selected = sapply(IVs_Selected_by_LASSO, 
+                     Variables_Selected = sapply(IVs_Selected, 
                                                  toString),
                      Structural_Variables = sapply(Structural_Variables, 
                                                    toString)), 
-          file = "LASSO's Selections for the DSs from 0.5-5-1-1 to 0.5-6-10-500.csv", 
+          file = "LASSO's Selections for the DSs from 0.75-15-1-1 to 0.75-15-10-500.csv", 
           row.names = FALSE)
 
 
@@ -74,7 +78,7 @@ write.csv(data.frame(DS_name = DS_names_list,
 BM1_NPs <- lapply(Structural_Variables, function(i) { length(i) })
 
 system.time(BM1_TPs <- lapply(seq_along(datasets), \(i)
-                              sum(IVs_Selected_by_LASSO[[i]] %in% 
+                              sum(IVs_Selected[[i]] %in% 
                                     Structural_Variables[[i]]))) 
 
 BM1_TPRs = lapply(seq_along(datasets), \(j)
@@ -83,7 +87,7 @@ BM1_TPRs = lapply(seq_along(datasets), \(j)
 # the number of False Positives & True Negative for each Regression
 BM1_NNs <- lapply(Structural_Variables, function(i) {30 - length(i)})
 BM1_FPs <- lapply(seq_along(datasets), \(i)
-                  sum(!(IVs_Selected_by_LASSO[[i]] %in% 
+                  sum(!(IVs_Selected[[i]] %in% 
                           Structural_Variables[[i]]))) 
 BM1_TNs <- lapply(seq_along(datasets), \(K) 30 - BM1_TPs[[K]])
 # the False Positive Rate = FP/(FP + TN)
@@ -143,15 +147,11 @@ colnames(PMs3) <- Headers
 performance_metrics <- data.frame(PMs1, PMs2, PMs3)
 performance_metrics
 
+setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark/Performance")
 write.csv(performance_metrics, 
-          file = "LASSO's Performance on the datasets from 0.5-5-1-1 to 0.5-6-10-500.csv", 
+          file = "LASSO's Performance on the datasets from 0.75-15-1-1 to 0.75-15-10-500.csv", 
           row.names = FALSE)
 
 length(datasets)
 head(DS_names_list)
 tail(DS_names_list)
-#write.csv(x = data.frame(first_6_datasets = head(DS_names_list),
-#                         last_6_datasets = tail(DS_names_list)), 
-#          file = "Dataset range for 7th run (10k).csv",
-#          row.names = FALSE)
-
