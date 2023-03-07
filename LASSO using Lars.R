@@ -78,7 +78,7 @@ Nonstructural_Variables <- lapply(Structural_IVs, function(i) {
 datasets <- lapply(datasets, function(i) {i[-1:-3, ]})
 datasets <- lapply(datasets, \(X) { lapply(X, as.numeric) })
 datasets <- lapply(datasets, function(i) { as.data.table(i) })
-datasets <- lapply(datasets, \(X) { round(X, 3) })
+datasets <- lapply(datasets, \(X) { round(X, 2) })
 
 
 
@@ -124,75 +124,77 @@ write.csv(data.frame(DS_name = DS_names_list,
 ### structural equation variables for that dataset in order
 ### to measure LASSO's performance.
 # all of the "Positives", i.e. all the Structural Regressors
-BM1_NPs <- lapply(Structural_Variables, function(i) { length(i) })
+lars_NPs <- lapply(Structural_Variables, function(i) { length(i) })
 # all of the "Negatives", i.e. all the Nonstructural Regressors
-BM1_NNs <- lapply(Structural_Variables, function(i) {30 - length(i)})
+lars_NNs <- lapply(Structural_Variables, function(i) {30 - length(i)})
 
 
 # the number True Positives for each LASSO
-BM1_TPs <- lapply(seq_along(datasets), \(i)
+lars_TPs <- lapply(seq_along(datasets), \(i)
                               sum(IVs.Selected.by.Lars[[i]] %in% 
                                     Structural_Variables[[i]]))
 # the number True Negatives for each LASSO
-BM1_TNs <- lapply(seq_along(datasets), \(k)
+lars_TNs <- lapply(seq_along(datasets), \(k)
                   sum(IVs.Not.Selected[[k]] %in% 
                         Nonstructural_Variables[[k]]))
 
 # the number of False Positives
-BM1_FPs <- lapply(seq_along(datasets), \(i)
+lars_FPs <- lapply(seq_along(datasets), \(i)
                   sum(IVs.Selected.by.Lars[[i]] %in% 
                         Nonstructural_Variables[[i]]))
 # the number of False Negatives Selected by each LASSO
-BM1_FNs <- lapply(seq_along(datasets), \(i)
+lars_FNs <- lapply(seq_along(datasets), \(i)
                   sum(IVs.Not.Selected[[i]] %in% 
                         Structural_Variables[[i]]))
 
 
 # the True Positive Rate
-BM1_TPRs = lapply(seq_along(datasets), \(j)
-                  j <- (BM1_TPs[[j]]/BM1_NPs[[j]]))
+lars_TPR = lapply(seq_along(datasets), \(j)
+                  j <- (lars_TPs[[j]]/lars_NPs[[j]]))
 
 # the False Positive Rate = FP/(FP + TN)
-BM1_FPRs = lapply(seq_along(datasets), \(j)
-                  j <- (BM1_FPs[[j]])/(BM1_FPs[[j]] + BM1_TNs[[j]]))
-BM1_FPRs2 = lapply(seq_along(datasets), \(j)
-                  j <- (BM1_FPs[[j]])/(BM1_FPs[[j]] + BM1_TNs[[j]]))
+lars_TNR = lapply(seq_along(datasets), \(j)
+                  j <- (lars_FPs[[j]])/(lars_FPs[[j]] + lars_TNs[[j]]))
+lars_TNR2 = lapply(seq_along(datasets), \(j)
+                  j <- (lars_FPs[[j]])/(lars_FPs[[j]] + lars_TNs[[j]]))
 
 # the True Negative Rate
-BM1_TNRs <- lapply(BM1_FPRs, \(i) 
+lars_TNRs <- lapply(lars_TNR, \(i) 
                    i <- (1 - i))
-BM1_TNRs2 <- lapply(seq_along(datasets), \(w)
-                    w <- (BM1_TNs[[w]]/(BM1_FPs[[w]] + BM1_TNs[[w]])))
+lars_TNRs2 <- lapply(seq_along(datasets), \(w)
+                    w <- (lars_TNs[[w]]/(lars_FPs[[w]] + lars_TNs[[w]])))
 
 
 ## Write one or more lines of code which determine whether each selected 
 ## model is "Underspecified", "Correctly Specified", or "Overspecified".
 # True Positive Rates as a vector rather than a list
-TPRs <- unlist(BM1_TPRs)
-mean_TPR <- round(mean(TPRs), 3)
+TPR <- unlist(lars_TPR)
+mean_TPR <- round(mean(TPR), 3)
 # number of selected regressions with at least one omitted variable
-num_OMVs <- sum(TPRs < 1, na.rm = TRUE)
+num_OMVs <- sum(TPR < 1, na.rm = TRUE)
 
 # False Positive Rate as a vector rather than a list
-FPRs <- unlist(BM1_FPRs)
-mean_FPR <- round(mean(FPRs), 3)
-num_null_FPR <- sum(FPRs == 0, na.rm = TRUE)
+TNR <- unlist(lars_TNR)
+mean_FPR <- round(mean(TNR), 3)
+num_null_FPR <- sum(TNR == 0, na.rm = TRUE)
 
 # True Negative Rates as a vector rather than a list
-TNRs <- unlist(BM1_TNRs)
+TNRs <- unlist(lars_TNRs)
 mean_TNR <- round(mean(TNRs), 3)
 
-# number of models with at least one extraneous variable selected
-num_Extraneous <- sum(FPRs > 0)
-# Overspecified Regression Specifications Selected by LASSO
-N_Over = sum( (FPRs > 0) & (TPRs == 1) )
 
 # Number of Underspecified Regression Specifications Selected by LASSO
-N_Under = sum( (TPRs > 0) & (FPRs == 0) & (TPRs < 1) )
+N_Under = sum( (TPR < 1) & (TNR == 0) )
 
 # Number of Correctly Specified Regressions Selected by LASSO
-N_Correct <- sum( (TPRs == 1) & (FPRs == 0) & (TNRs == 1) )
+N_Correct <- sum( (TPR == 1) & (TNRs == 1) )
 Num_Under_Correct_or_Over = N_Under + N_Correct + N_Over
+
+# number of models with at least one extraneous variable selected
+num_Extraneous <- sum(TNR > 0)
+# Overspecified Regression Specifications Selected by LASSO
+N_Over = sum( (TPR == 1) & (TNR > 0) )
+
 
 Headers <- c("True Positive Rate", "True Negative Rate", 
              "False Positive Rate")
