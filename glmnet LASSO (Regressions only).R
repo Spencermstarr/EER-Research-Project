@@ -55,8 +55,10 @@ write.csv(
   data.frame(DS_name = DS_names_list, 
              Variables.Selected.by.glmnet = sapply(Variables.Selected, toString),
              Structural_Variables = sapply(Structural_Variables, 
-                                           toString)),
-  file = "LASSO's Selections via glmnet for the DSs from '0.5-8-1-1 to 0.5-8-10-500.csv", 
+                                           toString),
+             Nonstructural_Variables = sapply(Nonstructural_Variables, 
+                                              toString)),
+  file = "LASSO's Selections via glmnet for the DSs from '0-5-1-1 to 0-6-10-500.csv", 
   row.names = FALSE)
 
 
@@ -144,7 +146,6 @@ N_Over = sum( (TPR == 1) & (FPR > 0) )
 Un_Corr_Ov = N_Under + N_Correct + N_Over
 
 
-
 Headers <- c("True Positive Rate", "True Negative Rate", 
              "False Positive Rate")
 PMs1 <- data.frame(mean_TPR, mean_TNR, mean_FPR)
@@ -169,7 +170,7 @@ performance_metrics <- data.frame(PMs1, PMs2, PMs3)
 performance_metrics
 
 write.csv(performance_metrics, 
-          file = "glmnet's Performance on the datasets from '0.5-8-1-1 to 0.5-8-10-500'.csv", 
+          file = "glmnet's Performance on the datasets from '0-5-1-1 to 0-6-10-500'.csv", 
           row.names = FALSE)
 
 

@@ -71,8 +71,13 @@ datasets <- lapply(datasets, function(dataset_i) {
 Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
 Structural_Variables <- lapply(Structural_IVs, function(i) {names(i)[i == 1]})
 head(Structural_Variables)
-Nonstructural_Variables <- lapply(Structural_IVs, function(i) {
-  names(i)[i == 0] })
+Nonstructural_Variables <- lapply(Structural_IVs, function(i) {names(i)[i == 0]})
+
+# assign all 30 candidate regressor names to an object
+var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
+               "X9","X10","X11","X12","X13","X14","X15",
+               "X16","X17","X18","X19","X20","X21","X22", 
+               "X23","X24","X25","X26","X27","X28","X29","X30")
 
 
 datasets <- lapply(datasets, function(i) {i[-1:-3, ]})
@@ -113,7 +118,9 @@ write.csv(data.frame(DS_name = DS_names_list,
                      Unselected_Variables = sapply(IVs.Not.Selected, 
                                                    toString),
                      Structural_Variables = sapply(Structural_Variables, 
-                                                   toString)), 
+                                                   toString),
+                     NonStructural_Variables = sapply(Nonstructural_Variables, 
+                                                   toString)),
           file = "Lars's Selections for the DSs from 0.75-15-1-1 to 0.75-15-10-500.csv", 
           row.names = FALSE)
 
@@ -188,12 +195,14 @@ N_Under = sum( (TPR < 1) & (TNR == 0) )
 
 # Number of Correctly Specified Regressions Selected by LASSO
 N_Correct <- sum( (TPR == 1) & (TNRs == 1) )
-Num_Under_Correct_or_Over = N_Under + N_Correct + N_Over
 
 # number of models with at least one extraneous variable selected
-num_Extraneous <- sum(TNR > 0)
+num_Extraneous <- sum(FPR > 0, na.rm = TRUE)
 # Overspecified Regression Specifications Selected by LASSO
-N_Over = sum( (TPR == 1) & (TNR > 0) )
+N_Over = sum( (TPR == 1) & (FPR > 0) )
+
+# sum of all the 3 specification categories
+Un_Corr_Ov = N_Under + N_Correct + N_Over
 
 
 Headers <- c("True Positive Rate", "True Negative Rate", 
@@ -208,10 +217,12 @@ Headers <- c("Underspecified Models Selected",
 PMs2 <- data.frame(N_Under, N_Correct, N_Over, Num_Under_Correct_or_Over)
 colnames(PMs2) <- Headers
 
-Headers <- c("Models with at least one Omitted Variable",
+Headers <- c("All Correct, Over, and Underspecified Models", 
+             "Models with at least one Omitted Variable",
              "Models with at least one Extra Variable")
-PMs3 <- data.frame(num_OMVs, num_Extraneous)
+PMs3 <- data.frame(Un_Corr_Ov, num_OMVs, num_Extraneous)
 colnames(PMs3) <- Headers
+rm(num_OMVs, num_Extraneous)
 
 # Or, just print out this instead of having to print out 3 different things
 performance_metrics <- data.frame(PMs1, PMs2, PMs3)

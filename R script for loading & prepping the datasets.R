@@ -23,7 +23,7 @@ library(parallel)
 # in the file folder called 'Data' which is filled
 # random synthetic observations to run FS, Stepwise, and eventually EER
 # on to compare the results. There are 260k spreadsheets in this folder
-folderpath <- "C:/Users/Spencer/Documents/EER_Project/csvs/0.25-11-1-1 to 0.25-11-10-500"
+folderpath <- "C:/Users/Spencer/Documents/EER_Project/0.5-7-1-1 to 0.5-7-10-500"
 system.time(paths_list <- list.files(path = folderpath, 
                                      full.names = TRUE,  
                                      recursive = TRUE))
@@ -69,10 +69,10 @@ Nonstructural_Variables <- lapply(Structural_IVs, function(i) {
   names(i)[i == 0] })
 
 # assign all 30 candidate regressor names to an object
-var_names <- c("X1","X2", "X3", "X4","X5", "X6", "X7","X8", "X9",
-                  "X10","X11", "X12", "X13","X14", "X15", "X16","X17", 
-                  "X18", "X19","X20", "X21", "X22","X23", "X24", "X25",
-                  "X26", "X27", "X28","X29", "X30")
+var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
+               "X9","X10","X11","X12","X13","X14","X15",
+               "X16","X17","X18","X19","X20","X21","X22", 
+               "X23","X24","X25","X26","X27","X28","X29","X30")
 
 
 # truncate & transform the datasets list before running the regressions
@@ -84,9 +84,9 @@ datasets <- lapply(datasets, function(i) { as.data.table(i) })
 #rm(CL)
 
 
-#save.image("D:/EER/Saved WorkSpaces/Workspaces for dataset folders starting with '0.25'/datasets WorkSpace for 0.25-11-1-1 to 0.25-11-10-500.RData")
-save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/datasets WorkSpace for '0.25-11-1-1 to 0.25-11-10-500'.RData")
-#save.image("D:/EER folder/WorkSpaces/datasets WorkSpace for 0.25-11-1-1 to 0.25-11-10-500 datasets.RData")
+#save.image("D:/EER/Saved WorkSpaces/Workspaces for dataset folders starting with '0.25'/datasets WorkSpace for 0.5-7-1-1 to 0.5-7-10-500.RData")
+save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/datasets WorkSpace for '0.5-7-1-1 to 0.5-7-10-500'.RData")
+#save.image("D:/EER folder/WorkSpaces/datasets WorkSpace for 0.5-7-1-1 to 0.5-7-10-500 datasets.RData")
 
 
 

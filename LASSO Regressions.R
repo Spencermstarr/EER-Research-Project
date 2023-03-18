@@ -6,6 +6,14 @@
 #setwd("D:/EER folder")
 #setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark")
 getwd()
+#system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/Estimated Exhaustive Regression Project/Saved WorkSpaces/datasets WorkSpace for '0.25-15-1-1 to 0.25-15-10-500'.RData") )
+
+# assign all 30 candidate regressor names to an object
+var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
+               "X9","X10","X11","X12","X13","X14","X15",
+               "X16","X17","X18","X19","X20","X21","X22", 
+               "X23","X24","X25","X26","X27","X28","X29","X30")
+
 
 # load all necessary packages
 library(plyr)
@@ -59,12 +67,16 @@ datasets <- lapply(datasets, function(dataset_i) {
                             "X23","X24","X25","X26","X27","X28","X29","X30")
   dataset_i })
 
-Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
-Structural_Variables <- lapply(Structural_IVs, function(i) {
-  names(i)[i == 1] })
+# assign all 30 candidate regressor names to an object
+var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
+               "X9","X10","X11","X12","X13","X14","X15",
+               "X16","X17","X18","X19","X20","X21","X22", 
+               "X23","X24","X25","X26","X27","X28","X29","X30")
 
-Nonstructural_Variables <- lapply(Structural_IVs, function(i) {
-  names(i)[i == 0] })
+
+Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
+Structural_Variables <- lapply(Structural_IVs, function(i) {names(i)[i == 1]})
+Nonstructural_Variables <- lapply(Structural_IVs, function(i) {names(i)[i == 0]})
 
 
 # truncate & transform the datasets list before running the regressions
@@ -72,8 +84,7 @@ system.time(datasets <- lapply(datasets, function(i) {i[-1:-3, ]}))
 system.time(datasets <- lapply(datasets, \(X) { lapply(X, as.numeric) }))
 system.time(datasets <- lapply(datasets, function(i) { as.data.table(i) }))
 
-
-#save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/Saved WorkSpaces/datasets WorkSpace for 'top 50'.RData")
+#save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/Saved WorkSpaces/datasets WorkSpace for '0.25-15-1-1 to 0.25-15-10-500'.RData")
 
 
 
@@ -114,7 +125,9 @@ write.csv(
   data.frame(DS_name = DS_names_list, 
              IVs_selected = sapply(IVs_Selected, toString),
              Structural_Variables = sapply(Structural_Variables, 
-                                           toString)),
+                                           toString),
+             Nonstructural_Variables = sapply(Nonstructural_Variables, 
+                                              toString)),
   file = "LASSO's Selections for the DSs from top 50.csv", 
   row.names = FALSE)
 
@@ -184,16 +197,19 @@ num_null_FPR <- sum(FPRs == 0, na.rm = TRUE)
 TNRs <- unlist(enet_TNRs)
 mean_TNR <- round(mean(TNRs), 3)
 
-# number of models with at least one extraneous variable selected
-num_Extraneous <- sum(FPRs > 0)
-# Overspecified Regression Specifications Selected by LASSO
-N_Over = sum( (FPRs > 0) & (TPRs == 1) )
 
 # Number of Underspecified Regression Specifications Selected by LASSO
-N_Under = sum( (TPRs > 0) & (FPRs == 0) & (TPRs < 1) )
+N_Under = sum( (TPRs < 0) & (FPRs == 0) )
 
 # Number of Correctly Specified Regressions Selected by LASSO
-N_Correct <- sum( (TPRs == 1) & (FPRs == 0) & (TNRs == 1) )
+N_Correct <- sum( (TPRs == 1) & (TNRs == 1) )
+
+# Overspecified Regression Specifications Selected by LASSO
+N_Over = sum( (TPRs == 1) & (FPRs > 0) )
+# number of models with at least one extraneous variable selected
+num_Extraneous <- sum(FPRs > 0, na.rm = TRUE)
+
+# sum of all the 3 specification categories
 Num_Under_Correct_or_Over = N_Under + N_Correct + N_Over
 
 
@@ -211,9 +227,10 @@ PMs2 <- data.frame(N_Under, N_Correct, N_Over)
 colnames(PMs2) <- Headers
 rm(N_Under, N_Correct, N_Over)
 
-Headers <- c("Models with at least one Omitted Variable",
-              "Models with at least one Extra Variable")
-PMs3 <- data.frame(num_OMVs, num_Extraneous)
+Headers <- c("All Correct, Over, and Underspecified Models", 
+             "Models with at least one Omitted Variable",
+             "Models with at least one Extra Variable")
+PMs3 <- data.frame(Num_Under_Correct_or_Over, num_OMVs, num_Extraneous)
 colnames(PMs3) <- Headers
 rm(num_OMVs, num_Extraneous)
 
@@ -222,7 +239,7 @@ performance_metrics <- data.frame(PMs1, PMs2, PMs3)
 performance_metrics
 
 write.csv(performance_metrics, 
-          file = "LASSO's Performance on the datasets from top 50.csv", 
+          file = "LASSO's Performance on the datasets from '0.25-15-1-1 to 0.25-15-10-500'.csv", 
           row.names = FALSE)
 
 
@@ -240,6 +257,6 @@ length(datasets)
 #rm(FPRs, TPRs, TNRs, Headers, num_null_FPR)
 
 length(datasets)
-#save.image("D:/EER/Saved WorkSpaces/datasets WorkSpace for top 50.RData")
+#save.image("D:/EER/Saved WorkSpaces/datasets WorkSpace for '0.25-15-1-1 to 0.25-15-10-500'.RData")
 #rm(performance_metrics, PMs1, PMs2, PMs3)
 
