@@ -38,21 +38,21 @@ library(parallel)
 ### function on each of the 260,000 datasets.
 ### Assign the full models to their corresponding datasets and
 ### store these in the object "full_models"
-CL <- makeCluster(detectCores() - 2L)
+CL <- makeCluster(detectCores() - 5L)
 system.time( clusterExport(CL, c('datasets')) )
 set.seed(11)      # for reproducibility
 system.time( BE.fits <- parLapply(cl = CL, X = datasets, \(ds_i) {
   full_models <- lm(ds_i$Y ~ ., data = ds_i)
-  back <- stats::step(full_models, scope = formula(full_models), 
+  back <- stats::step(object = full_models, scope = formula(full_models), 
                       direction = 'back', trace = FALSE) }) )
 #system.time( BE.fits <- lapply(X = datasets, \(ds_i) {
 #  full_models <- lm(ds_i$Y ~ ., data = ds_i)
-#  back <- stats::step(full_models, scope = formula(full_models), 
+#  back <- stats::step(object = full_models, scope = formula(full_models), 
 #                      direction = 'back', trace = FALSE) }) )
 stopCluster(CL)
 rm(CL)
 
-# extract the names of all IVs selected (besides their intercepts) by each 
+# Extract the names of all IVs selected (besides their intercepts) by each 
 # of the 260k Backward Elimination Stepwise Regressions estimated above 
 # and store those estimates in the list object 'IVs_Selected_by_BE'
 IVs_Selected_by_BE <- lapply(seq_along(BE.fits), 
@@ -172,22 +172,23 @@ write.csv(BE_df,
 ### function on each of the 260,000 datasets.
 ### Assign the null models to their corresponding datasets 
 ### and store these in the object "nulls".
-CL <- makeCluster(detectCores() - 4L)
+CL <- makeCluster(detectCores() - 2L)
 system.time( clusterExport(CL, c('datasets')) )
 set.seed(11)      # for reproducibility
 system.time( FS.fits <- parLapply(cl = CL, X = datasets, \(ds_i) {
   nulls <- lm(ds_i$Y ~ 1, data = ds_i)
   full_models <- lm(ds_i$Y ~ ., data = ds_i)
-  forward <- stats::step(object = nulls, direction = 'forward',
-                         scope = formula(full_models), trace = FALSE) }) )
+  forward <- stats::step(object = nulls, scope = formula(full_models), 
+                         direction = 'forward', trace = FALSE) }) )
 stopCluster(CL)
 rm(CL)
-#set.seed(11)      # for reproducibility
-#system.time( FS.fits <- lapply(X = datasets, \(ds_i) {
-#  nulls <- lm(ds_i$Y ~ 1, data = ds_i)
-#  full_models <- lm(ds_i$Y ~ ., data = ds_i)
-#  forward <- stats::step(object = nulls, direction = 'forward',
-#                         scope = formula(full_models), trace = FALSE) }) )
+
+set.seed(11)      # for reproducibility
+system.time( FS.fits <- lapply(X = datasets, \(ds_i) {
+  nulls <- lm(ds_i$Y ~ 1, data = ds_i)
+  full_models <- lm(ds_i$Y ~ ., data = ds_i)
+  forward <- stats::step(object = nulls, scope = formula(full_models), 
+                         direction = 'forward', trace = FALSE) }) )
 #stopCluster(CL)
 #rm(CL)
 
@@ -304,7 +305,7 @@ write.csv(data.frame(DS_name = DS_names_list,
                                                    toString),
                      Nonstructural_Variables = sapply(Nonstructural_Variables, 
                                                       toString)),
-          file = "Regressors Selected by SR for DSs from 0.5-7-1-1 to 0.5-7-10-500.csv", 
+          file = "Regressors Selected by SR for DSs from 0-12-1-1 to 0-12-10-500.csv", 
           row.names = FALSE)
 
 

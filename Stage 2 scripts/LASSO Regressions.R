@@ -6,7 +6,7 @@
 #setwd("D:/EER folder")
 #setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark")
 getwd()
-#system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/Estimated Exhaustive Regression Project/Saved WorkSpaces/datasets WorkSpace for '0.25-15-1-1 to 0.25-15-10-500'.RData") )
+#system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.25'/datasets WorkSpace for '0.25-15-1-1 to 0.25-15-10-500'.RData") )
 
 # assign all 30 candidate regressor names to an object
 var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
@@ -66,13 +66,13 @@ datasets <- lapply(datasets, function(dataset_i) {
                             "X16","X17","X18","X19","X20","X21","X22", 
                             "X23","X24","X25","X26","X27","X28","X29","X30")
   dataset_i })
+All_Variable_Names <- lapply(datasets, function(k) {names(k)})
 
 # assign all 30 candidate regressor names to an object
 var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
                "X9","X10","X11","X12","X13","X14","X15",
                "X16","X17","X18","X19","X20","X21","X22", 
                "X23","X24","X25","X26","X27","X28","X29","X30")
-
 
 Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
 Structural_Variables <- lapply(Structural_IVs, function(i) {names(i)[i == 1]})
@@ -91,10 +91,10 @@ system.time(datasets <- lapply(datasets, function(i) { as.data.table(i) }))
 
 
 
-# This function fits all 260,000 LASSO regressions for/on
-# each of the corresponding 260k datasets stored in the object
-# of that name, then outputs standard regression results which 
-# are typically called returned for any regression ran using R.
+## This function can fit one of the 260,000 LASSO regressions on each 
+## of the corresponding 260k datasets stored in the object of that name, 
+## then the standard regression results for each are  stored in it which 
+## are typical for any single regression ran using R.
 library(elasticnet)
 set.seed(11)     # to ensure replicability
 system.time(LASSO_fits <- lapply(X = datasets, function(i) 
@@ -102,9 +102,7 @@ system.time(LASSO_fits <- lapply(X = datasets, function(i)
                                          starts_with("X"))), 
                y = i$Y, lambda = 0, normalize = FALSE)))
 
-## This stores and prints out all of the regression 
-## equation specifications selected by LASSO when called.
-# Press Run or hit Ctrl+Enter only once for the 5 lines below
+## This separates out and stores just the coefficient estimates from each LASSO.
 LASSO_Coeffs <- lapply(LASSO_fits, 
                           function(i) predict(i, 
                                            x = as.matrix(dplyr::select(i, starts_with("X"))), 
@@ -114,11 +112,13 @@ LASSO_Coeffs <- lapply(LASSO_fits,
 #rm(CL)
 
 
-### Write my own custom function which will separate out and return a 
+### Write my own custom lapply which will separate out and return a 
 ### new list containing just the Independent Variables
 ### which are 'selected' or chosen for each individual dataset.
 IVs_Selected <- lapply(LASSO_Coeffs, function(i) names(i[i > 0]))
 
+### Do the same, but in reverse, i.e., return the names of all
+### the candidates factors which were not selected.
 IVs_Not_Selected <- lapply(LASSO_Coeffs, function(j) names(j[j == 0]))
 
 write.csv(

@@ -2,7 +2,7 @@
 # in the top right corner of this panel, or by hitting Ctrl+Enter
 
 # find out which working directory R has defaulted to
-rm(list = ls())
+#rm(list = ls())
 #setwd("D:/EER")
 #setwd("D:/EER folder")
 #setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark")
@@ -78,6 +78,9 @@ var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
                "X9","X10","X11","X12","X13","X14","X15",
                "X16","X17","X18","X19","X20","X21","X22", 
                "X23","X24","X25","X26","X27","X28","X29","X30")
+
+
+All_Variable_Names <- lapply(datasets, function(k) {names(k)})
 
 Structural_IVs <- lapply(datasets, function(j) {j[1, -1]})
 Structural_Variables <- lapply(Structural_IVs, function(i) {
