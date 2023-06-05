@@ -7,7 +7,7 @@ rm(list = ls())
 #setwd("D:/EER folder")
 #setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark")
 #getwd()
-system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/datasets WorkSpace for '0.75-9-1-1 to 0.75-9-10-500'.RData") )
+system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/datasets WorkSpace for '0.75-12-1-1 to 0.75-12-10-500'.RData") )
 #Structural_Variables <- True_Regressors
 
 # copy+paste whatever the path is for your file folder with all the 
@@ -39,11 +39,10 @@ var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
 # are typically called returned for any regression ran using R
 #CL3 <- makeCluster(detectCores() - 1L)
 #clusterExport(CL3, c('datasets'))
-grid <- 10^seq(10, -2, length = 100)
 set.seed(11)     # to ensure replicability
 system.time(glmnet_lasso.fits <- lapply(X = datasets, function(i) 
                glmnet(x = as.matrix(select(i, starts_with("X"))), 
-                      y = i$Y, alpha = 1, lambda = grid)))
+                      y = i$Y, alpha = 1)))
 
 # Use cross-validation to select the penalty parameter
 system.time(cv_glmnet_lasso.fits <- lapply(datasets, function(i) 
@@ -51,7 +50,7 @@ system.time(cv_glmnet_lasso.fits <- lapply(datasets, function(i)
 
 # Store and print out the regression equation specifications selected by LASSO when called
 lasso.coeffs = cv_glmnet_lasso.fits |> 
-  Map(f = \(model) coef(model, s = "lambda.min"))
+  Map(f = \(model) coef(model, s = "lambda.1se"))
 
 Variables.Selected <- lasso.coeffs |>
   Map(f = \(matr) matr |> as.matrix() |> 
@@ -68,10 +67,9 @@ write.csv(data.frame(DS_name = DS_names_list,
              Variables.Selected.by.glmnet = sapply(Variables.Selected, toString),
              Structural_Variables = sapply(Structural_Variables, 
                                            toString),
-             Variables.Not.Selected.by.glmnet = sapply(Variables.Not.Selected, toString),
-             Nonstructural_Variables = sapply(Nonstructural_Variables, 
-                                              toString)),
-  file = "LASSO's Selections via glmnet for the DSs from '0.75-9-1-1 to 0.75-9-10-500.csv", 
+             Variables.Not.Selected.by.glmnet = sapply(Variables.Not.Selected, 
+                                                       toString)),
+  file = "LASSO's Selections via glmnet for the DSs from '0.75-12-1-1 to 0.75-12-10-500'.csv", 
   row.names = FALSE)
 
 
@@ -124,6 +122,19 @@ BM1_TNR2 <- lapply(seq_along(datasets), \(w)
 BM1_TNR3 <- lapply(BM1_FPR, \(i) 
                     i <- (1 - i))
 
+## calculate the accuracy and F1 score with help from GPT 4
+BM1_Accuracy <- lapply(seq_along(datasets), function(i)
+  (BM1_TPs[[i]] + BM1_TNs[[i]])/(BM1_TPs[[i]] + BM1_TNs[[i]] + BM1_FPs[[i]] + BM1_FNs[[i]]))
+
+# First calculate precision and recall for each dataset
+BM1_Precision <- lapply(seq_along(datasets), function(i)
+  BM1_TPs[[i]]/(BM1_TPs[[i]] + BM1_FPs[[i]]))
+BM1_Recall <- BM1_TPR  # You have already calculated recall as True Positive Rate (TPR)
+
+# Then calculate F1 score for each dataset
+BM1_F1_Score <- lapply(seq_along(datasets), function(i)
+  2 * (BM1_Precision[[i]] * BM1_Recall[[i]])/(BM1_Precision[[i]] + BM1_Recall[[i]]))
+
 
 ## Write one or more lines of code which determine whether each selected 
 ## model is "Underspecified", "Correctly Specified", or "Overspecified".
@@ -138,13 +149,21 @@ FPR <- unlist(BM1_FPR)
 mean_FPR <- round(mean(FPR), 3)
 num_null_FPR <- sum(FPR == 0, na.rm = TRUE)
 # number of models with at least one extraneous variable selected
-num_Extraneous <- sum(FPR > 0)
+num_Extraneous <- sum(FPR > 0, na.rm = TRUE)
 
 # True Negative Rates as a vector rather than a list
 TNR <- unlist(BM1_TNR)
 TNR2 <- unlist(BM1_TNR2)
 mean_TNR <- round(mean(TNR), 3)
 mean_TNR2 <- round(mean(TNR2), 3)
+
+# The Accuracy as a vector rather than a list
+Acc <- unlist(BM1_Accuracy)
+mean_Accuracy <- round(mean(Acc), 3)
+
+# The F1 Scores as a vector rather than a list
+F1 <- unlist(BM1_F1_Score)
+mean_F1 <- round(mean(F1), 3)
 
 # Number of Underspecified Regression Specifications Selected by LASSO
 N_Under = sum( (TPR < 1) & (FPR == 0) )
@@ -159,39 +178,41 @@ N_Over = sum( (TPR == 1) & (FPR > 0) )
 Un_Corr_Ov = N_Under + N_Correct + N_Over
 
 
-Headers <- c("True Positive Rate", "True Negative Rate", 
-             "False Positive Rate")
-PMs1 <- data.frame(mean_TPR, mean_TNR, mean_FPR)
-colnames(PMs1) <- Headers
+PMs1 <- data.frame(mean_Accuracy, mean_F1)
+colnames(PMs1) <- c("Mean Accuracy", "Mean F1 Score")
+
+Headers <- c("Mean True Positive Rate", "Mean True Negative Rate", 
+             "Mean False Positive Rate")
+PMs2 <- data.frame(mean_TPR, mean_TNR, mean_FPR)
+colnames(PMs2) <- Headers
 rm(mean_TPR, mean_TNR, mean_FPR)
 
 Headers <- c("Underspecified Models Selected", 
              "Correctly Specified Models Selected",
              "Overspecified Models Selected")
-PMs2 <- data.frame(N_Under, N_Correct, N_Over)
-colnames(PMs2) <- Headers
+PMs3 <- data.frame(N_Under, N_Correct, N_Over)
+colnames(PMs3) <- Headers
 rm(N_Under, N_Correct, N_Over)
 
 Headers <- c("All Correct, Over, and Underspecified Models", 
              "Models with at least one Omitted Variable",
              "Models with at least one Extra Variable")
-PMs3 <- data.frame(Un_Corr_Ov, num_OMVs, num_Extraneous)
-colnames(PMs3) <- Headers
+PMs4 <- data.frame(Un_Corr_Ov, num_OMVs, num_Extraneous)
+colnames(PMs4) <- Headers
 
 # Or, just print out this instead of having to print out 3 different things
-performance_metrics <- data.frame(PMs1, PMs2, PMs3)
+performance_metrics <- data.frame(PMs1, PMs2, PMs3, PMs4)
+# Combine all of the performance metrics into a data.frame
 performance_metrics
 
 write.csv(performance_metrics, 
-          file = "glmnet's Performance on the datasets from '0.75-9-1-1 to 0.75-9-10-500'.csv", 
+          file = "glmnet's Performance on the datasets from '0.75-12-1-1 to 0.75-12-10-500'.csv", 
           row.names = FALSE)
 
 length(datasets)
 head(DS_names_list)
 tail(DS_names_list)
 
-#rm(CL, Structural_Variables)
-#rm(Variables.Selected, LASSO_fits, LASSO_Coeffs)
+#rm(CL, Structural_Variables, Variables.Selected, LASSO_fits, LASSO_Coeffs)
 #rm(BM1_FPR, BM1_FPs, BM1_NNs, BM1_NPs, BM1_TNR, BM1_TPR, BM1_TPs)
-#rm(FPR, TPR, TNR, Headers, num_null_FPR)
-#rm(performance_metrics, PMs1, PMs2, PMs3)
+#rm(FPR, TPR, TNR, Headers, num_null_FPR, performance_metrics, PMs1, PMs2, PMs3)
