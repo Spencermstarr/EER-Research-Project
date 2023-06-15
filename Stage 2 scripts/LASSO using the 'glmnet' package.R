@@ -30,7 +30,7 @@ library(parallel)
 
 # these 2 lines together create a simple character list of 
 # all the file names in the file folder of datasets you created
-folderpath <- "C:/Users/Spencer/Documents/EER_Project/csvs/0-11-1-1 to 0-11-10-500"
+folderpath <- "C:/Users/Spencer/Documents/EER_Project/Data/ten"
 paths_list <- list.files(path = folderpath, full.names = T, recursive = T)
 
 # reformat the names of each of the csv file formatted dataset
@@ -105,7 +105,7 @@ save.image("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/S
 # each of the corresponding n datasets stored in the object
 # of that name, then outputs standard regression results which 
 # are typically called returned for any regression ran using R.
-#CL3 <- makeCluster(detectCores() - 1L)
+#CL3 <- makeCluster(detectCores() - 4L)
 #clusterExport(CL3, c('datasets'))
 set.seed(11)     # to ensure replicability
 system.time(L.fits <- lapply(X = datasets, function(i) 
@@ -116,7 +116,7 @@ system.time(L.fits <- lapply(X = datasets, function(i)
 # This stores and prints out all of the regression 
 # equation specifications selected by LASSO when called
 L.coefs = L.fits |> 
-  Map(f = \(model) coef(model, s = .1))
+  Map(f = \(model) coef(model, s = 0.1))
 
 Variables.Selected <- L.coefs |>
   Map(f = \(matr) matr |> as.matrix() |> 
@@ -133,11 +133,12 @@ Variables.Not.Selected <- L.coefs |>
 write.csv(
   data.frame(DS_name = DS_names_list, 
              Variables.Selected.by.glmnet = sapply(Variables.Selected, toString),
+             Variables.Not.Selected = sapply(Variables.Not.Selected, toString),
              Structural_Variables = sapply(Structural_Variables, 
                                            toString),
              Nonstructural_Variables = sapply(Nonstructural_Variables, 
                                               toString)),
-  file = "LASSO's Selections via glmnet for the DSs from '0-11-1-1 to 0-11-10-500'.csv", 
+  file = "LASSO's Selections via glmnet for the DSs from '0.75-3-1-1 to 0.75-4-10-500'.csv", 
   row.names = FALSE)
 
 
@@ -151,8 +152,8 @@ write.csv(
 glmnet_NPs <- lapply(Structural_Variables, function(i) { length(i) })
 
 # all of the "Negatives", i.e. all the Nonstructural Regressors
-glmnet_NNs <- lapply(Structural_Variables, function(i) {30 - length(i)})
-glmnet_NNs2 <- lapply(Nonstructural_Variables, function(i) {length(i)})
+glmnet_NNs <- lapply(Nonstructural_Variables, function(i) {length(i)})
+glmnet_NNs2 <- lapply(Structural_Variables, function(i) {30 - length(i)})
 
 # all the "True Positives"
 glmnet_TPs <- lapply(seq_along(datasets), \(i)
@@ -198,6 +199,19 @@ glmnet_TNR3 <- lapply(glmnet_FPR, \(i)
                     i <- (1 - i))
 
 
+## calculate the accuracy and F1 score with help from GPT 4
+glmnet_Accuracy <- lapply(seq_along(datasets), function(i)
+  (glmnet_TPs[[i]] + glmnet_TNs[[i]])/(glmnet_TPs[[i]] + glmnet_TNs[[i]] + glmnet_FPs[[i]] + glmnet_FNs[[i]]))
+
+# First calculate precision and TPR for each dataset
+glmnet_Precision <- lapply(seq_along(datasets), function(i)
+  glmnet_TPs[[i]]/(glmnet_TPs[[i]] + glmnet_FPs[[i]]))
+
+# Then calculate F1 score for each dataset
+glmnet_F1_Score <- lapply(seq_along(datasets), function(i)
+  2 * (glmnet_Precision[[i]] * glmnet_TPR[[i]])/(glmnet_Precision[[i]] + glmnet_TPR[[i]]))
+
+
 ## Write one or more lines of code which determine whether each selected 
 ## model is "Underspecified", "Correctly Specified", or "Overspecified".
 # True Positive Rates as a vector rather than a list
@@ -229,6 +243,15 @@ mean_TNR2 <- round(mean(TNR2), 3)
 mean_TNR3 <- round(mean(TNR3), 3)
 
 
+# The Accuracy as a vector rather than a list
+Acc <- unlist(glmnet_Accuracy)
+mean_Accuracy <- round(mean(Acc), 3)
+
+# The F1 Scores as a vector rather than a list
+F1 <- unlist(glmnet_F1_Score)
+mean_F1 <- round(mean(F1), 3)
+
+
 # Number of Underspecified Regression Specifications Selected by LASSO
 N_Under = sum( (TPR < 0) & (FPR == 0) )
 
@@ -242,18 +265,16 @@ N_Over = sum( (TPR == 1) & (FPR > 0) )
 Un_Corr_Ov = N_Under + N_Correct + N_Over
 
 
-Headers <- c("True Positive Rate", "True Negative Rate", 
-             "False Positive Rate")
-PMs1 <- data.frame(mean_TPR, mean_TNR, mean_FPR)
+Headers <- c("Mean Accuracy", "Mean F1 Score", "Mean True Positive Rate", 
+             "Mean True Negative Rate", "Mean False Positive Rate")
+PMs1 <- data.frame(mean_Accuracy, mean_F1, mean_TPR, mean_TNR, mean_FPR)
 colnames(PMs1) <- Headers
-rm(mean_TPR, mean_TNR, mean_FPR)
 
 Headers <- c("Underspecified Models Selected", 
              "Correctly Specified Models Selected",
              "Overspecified Models Selected")
 PMs2 <- data.frame(N_Under, N_Correct, N_Over)
 colnames(PMs2) <- Headers
-rm(N_Under, N_Correct, N_Over)
 
 
 Headers <- c("All Correct, Over, and Underspecified Models", 
@@ -268,7 +289,7 @@ performance_metrics
 
 #setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark/Replications using 'glmnet'")
 write.csv(performance_metrics, 
-          file = "glmnet's Performance on the datasets from '0-11-1-1 to 0-11-10-500'.csv", 
+          file = "glmnet's Performance on the datasets from '0.75-3-1-1 to 0.75-4-10-500'.csv", 
           row.names = FALSE)
 #stopCluster(CL)
 

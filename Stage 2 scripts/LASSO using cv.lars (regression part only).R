@@ -4,7 +4,7 @@
 rm(list = ls())
 # find out which working directory R has defaulted to
 getwd()
-system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0'/datasets WorkSpace for '0-3-1-1 to 0-4-10-500'.RData") )
+system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0'/datasets WorkSpace for '0-9-1-1 to 0-9-10-500'.RData") )
 #Structural_Variables <- True_Regressors
 
 # load all necessary packages using only 1 command/line
@@ -38,14 +38,12 @@ set.seed(11)  # to ensure replicability
 # Fit the models using cv.lars() instead of lars()
 system.time(LASSO.Lars.fits <- lapply(X = datasets, function(i) 
   cv.lars(x = as.matrix(select(i, starts_with("X"))), 
-          y = i$Y, type = "lasso", normalize =  FALSE, trace = TRUE)))
-print(LASSO.Lars.fits)
+          y = i$Y, type = "lasso", normalize =  FALSE, trace = FALSE)))
 
 
+set.seed(11)  # to ensure replicability
 LASSO.Lars.Coeffs <- lapply(LASSO.Lars.fits, 
                             function(i) i$beta[, which.min(i$cv.error)])
-print(LASSO.Lars.Coeffs)
-
 
 
 

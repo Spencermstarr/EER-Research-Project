@@ -4,7 +4,7 @@
 rm(list = ls())
 # find out which working directory R has defaulted to
 getwd()
-system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/datasets WorkSpace for '0.75-15-1-1 to 0.75-15-10-500'.RData") )
+load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0'/datasets WorkSpace for '0-3-1-1 to 0-4-10-500'.RData")
 #Structural_Variables <- True_Regressors
 
 # load all necessary packages using only 1 command/line
@@ -17,9 +17,11 @@ library_list <- c(library(dplyr),library(stringi),library(stats),
 # of that name, then outputs standard regression results which 
 # are typically called returned for any regression ran using R
 set.seed(11)     # to ensure replicability
-system.time(LASSO.Lars.fits <- lapply(X = datasets, function(i) 
+time_taken_to_fit <- system.time(LASSO.Lars.fits <- lapply(X = datasets, function(i) 
   lars(x = as.matrix(select(i, starts_with("X"))), 
        y = i$Y, type = "lasso", normalize =  FALSE)))
+# Extract the elapsed time
+time_elapsed_fitting <- time_taken_to_fit["elapsed"]
 
 # This stores and prints out all of the regression 
 # equation specifications selected by LASSO when called
@@ -27,12 +29,11 @@ set.seed(11)     # to ensure replicability
 system.time(LASSO.Lars.Coeffs <- lapply(LASSO.Lars.fits, 
                             function(i) predict(i, 
                                                 x = as.matrix(dplyr::select(i, starts_with("X"))), 
-                                                s = 0.1, mode = "fraction", 
+                                                s = 0.2, mode = "fraction", 
                                                 type = "coefficients")[["coefficients"]]))
 
-IVs.Selected.by.Lars <- lapply(LASSO.Lars.Coeffs, function(i) names(i[i > 0]))
+IVs.Selected.by.Lars <- lapply(LASSO.Lars.Coeffs, function(i) names(i[i != 0]))
 IVs.Not.Selected.by.Lars <- lapply(LASSO.Lars.Coeffs, function(j) names(j[j == 0]))
-
 
 write.csv(data.frame(DS_name = DS_names_list, 
                      Variables_Selected = sapply(IVs.Selected.by.Lars, 
@@ -43,7 +44,7 @@ write.csv(data.frame(DS_name = DS_names_list,
                                                    toString),
                      NonStructural_Variables = sapply(Nonstructural_Variables, 
                                                       toString)), 
-          file = "Lars's Selections for the DSs from 0.75-15-1-1 to 0.75-15-10-500.csv", 
+          file = "Lars's Selections for the DSs from 0-3-1-1 to 0-4-10-500.csv", 
           row.names = FALSE)
 
 
@@ -155,17 +156,17 @@ Headers <- c("All Correct, Over, and Underspecified Models",
              "Models with at least one Extra Variable")
 PMsD <- data.frame(Num_Under_Correct_or_Over, num_OMVs, num_Extraneous)
 colnames(PMsD) <- Headers
-rm(num_OMVs, num_Extraneous)
 
 # Or, just print out this instead of having to print out 3 different things
 Lars_performance <- data.frame(PMsA, PMsB, PMsC, PMsD)
 Lars_performance
 
 write.csv(Lars_performance, 
-          file = "Lars's Performance on the datasets from 0.75-15-1-1 to 0.75-15-10-500.csv", 
+          file = "Lars's Performance on the datasets from 0-3-1-1 to 0-4-10-500.csv", 
           row.names = FALSE)
 
 length(datasets)
 head(DS_names_list)
 tail(DS_names_list)
 getwd()
+time_elapsed_fitting

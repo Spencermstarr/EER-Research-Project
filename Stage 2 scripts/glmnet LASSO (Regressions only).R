@@ -7,7 +7,7 @@ rm(list = ls())
 #setwd("D:/EER folder")
 #setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER/1st Benchmark")
 #getwd()
-system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/datasets WorkSpace for '0.75-12-1-1 to 0.75-12-10-500'.RData") )
+system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/datasets WorkSpace for '0.75-11-1-1 to 0.75-11-10-500'.RData") )
 #Structural_Variables <- True_Regressors
 
 # copy+paste whatever the path is for your file folder with all the 
@@ -69,7 +69,7 @@ write.csv(data.frame(DS_name = DS_names_list,
                                            toString),
              Variables.Not.Selected.by.glmnet = sapply(Variables.Not.Selected, 
                                                        toString)),
-  file = "LASSO's Selections via glmnet for the DSs from '0.75-12-1-1 to 0.75-12-10-500'.csv", 
+  file = "LASSO's Selections via glmnet for the DSs from '0.75-11-1-1 to 0.75-11-10-500'.csv", 
   row.names = FALSE)
 
 
@@ -122,18 +122,22 @@ BM1_TNR2 <- lapply(seq_along(datasets), \(w)
 BM1_TNR3 <- lapply(BM1_FPR, \(i) 
                     i <- (1 - i))
 
+
+# the False Negative Rate = FN/(FN + TP)
+BM1_FNR <- lapply(datasets, \(i)
+                  i <- (BM1_FNs[[i]]/(BM1_TPs[[i]] + BM1_FPs[[i]])))
+
 ## calculate the accuracy and F1 score with help from GPT 4
 BM1_Accuracy <- lapply(seq_along(datasets), function(i)
   (BM1_TPs[[i]] + BM1_TNs[[i]])/(BM1_TPs[[i]] + BM1_TNs[[i]] + BM1_FPs[[i]] + BM1_FNs[[i]]))
 
-# First calculate precision and recall for each dataset
+# First calculate precision and TPR for each dataset
 BM1_Precision <- lapply(seq_along(datasets), function(i)
   BM1_TPs[[i]]/(BM1_TPs[[i]] + BM1_FPs[[i]]))
-BM1_Recall <- BM1_TPR  # You have already calculated recall as True Positive Rate (TPR)
 
 # Then calculate F1 score for each dataset
 BM1_F1_Score <- lapply(seq_along(datasets), function(i)
-  2 * (BM1_Precision[[i]] * BM1_Recall[[i]])/(BM1_Precision[[i]] + BM1_Recall[[i]]))
+  2 * (BM1_Precision[[i]] * BM1_TPR[[i]])/(BM1_Precision[[i]] + BM1_TPR[[i]]))
 
 
 ## Write one or more lines of code which determine whether each selected 
@@ -157,6 +161,14 @@ TNR2 <- unlist(BM1_TNR2)
 mean_TNR <- round(mean(TNR), 3)
 mean_TNR2 <- round(mean(TNR2), 3)
 
+# False Negative Rate as a vector rather than a list
+FNR <- unlist(BM1_FNR)
+mean_FNR <- round(mean(FNR), 3)
+
+# The PPV/precision as a vector rather than a list
+PPV <- unlist(BM1_Precision)
+mean_PPV <- round(mean(PPV), 3)
+
 # The Accuracy as a vector rather than a list
 Acc <- unlist(BM1_Accuracy)
 mean_Accuracy <- round(mean(Acc), 3)
@@ -177,36 +189,30 @@ N_Over = sum( (TPR == 1) & (FPR > 0) )
 # sum of all the 3 specification categories
 Un_Corr_Ov = N_Under + N_Correct + N_Over
 
-
-PMs1 <- data.frame(mean_Accuracy, mean_F1)
-colnames(PMs1) <- c("Mean Accuracy", "Mean F1 Score")
-
-Headers <- c("Mean True Positive Rate", "Mean True Negative Rate", 
-             "Mean False Positive Rate")
-PMs2 <- data.frame(mean_TPR, mean_TNR, mean_FPR)
-colnames(PMs2) <- Headers
-rm(mean_TPR, mean_TNR, mean_FPR)
+Headers <- c("Mean Accuracy", "Mean F1 Score", "Mean Positive Predictive Value", "Mean True Positive Rate", 
+             "Mean True Negative Rate", "Mean False Positive Rate", "Mean False Negative Rate")
+PMs1 <- data.frame(mean_Accuracy, mean_F1, mean_PPV, mean_TPR, mean_TNR, mean_FPR, mean_FNR)
+colnames(PMs1) <- Headers
 
 Headers <- c("Underspecified Models Selected", 
              "Correctly Specified Models Selected",
              "Overspecified Models Selected")
-PMs3 <- data.frame(N_Under, N_Correct, N_Over)
-colnames(PMs3) <- Headers
-rm(N_Under, N_Correct, N_Over)
+PMs2 <- data.frame(N_Under, N_Correct, N_Over)
+colnames(PMs2) <- Headers
 
 Headers <- c("All Correct, Over, and Underspecified Models", 
              "Models with at least one Omitted Variable",
              "Models with at least one Extra Variable")
-PMs4 <- data.frame(Un_Corr_Ov, num_OMVs, num_Extraneous)
-colnames(PMs4) <- Headers
+PMs3 <- data.frame(Un_Corr_Ov, num_OMVs, num_Extraneous)
+colnames(PMs3) <- Headers
 
 # Or, just print out this instead of having to print out 3 different things
-performance_metrics <- data.frame(PMs1, PMs2, PMs3, PMs4)
+performance_metrics <- data.frame(PMs1, PMs2, PMs3)
 # Combine all of the performance metrics into a data.frame
 performance_metrics
 
 write.csv(performance_metrics, 
-          file = "glmnet's Performance on the datasets from '0.75-12-1-1 to 0.75-12-10-500'.csv", 
+          file = "glmnet's Performance on the datasets from '0.75-11-1-1 to 0.75-11-10-500'.csv", 
           row.names = FALSE)
 
 length(datasets)
