@@ -51,9 +51,9 @@ paths_list = paths_list[my_order]
 ## This line reads all of the data in each of the csv files 
 ## using the name of each store in the list we just created.
 #system.time( datasets <- lapply(paths_list, fread) )
-# depending on how many of the datasets you run this on at a time, it can 
-# really take a long time, I was do subsets of 5k & 10k at a time, and to
-# speed that up, when I am not doing anything else on my laptop that is taxing,
+# Depending on how many of the datasets you run this on at a time, it can 
+# really take a long time still though, even using fread, I ended up only doing subsets of 5k & 10k at a time. 
+# So, in order to speed things up even more, when I am not doing anything else on my laptop that is taxing,
 # I parallelize this importation task.
 CL <- makeCluster(detectCores() - 2L)
 clusterExport(CL, c('paths_list'))
