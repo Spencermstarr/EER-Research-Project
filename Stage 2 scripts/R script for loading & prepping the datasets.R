@@ -28,8 +28,8 @@ folderpath <- "C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER projec
 system.time(paths_list <- list.files(path = folderpath, 
                                      full.names = TRUE,  
                                      recursive = TRUE))
-# shorten the names of each of the datasets corresponding to 
-# each file path in paths_list
+
+# shorten the names of each of the datasets corresponding to each file path in paths_list
 DS_names_list <- basename(paths_list)
 DS_names_list <- tools::file_path_sans_ext(DS_names_list)
 
