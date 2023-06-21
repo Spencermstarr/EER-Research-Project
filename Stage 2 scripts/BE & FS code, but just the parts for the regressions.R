@@ -9,8 +9,9 @@ rm(list = ls())
 #setwd("D:/EER")
 #setwd("D:/EER folder")
 getwd()
-#system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/datasets WorkSpace for '0.5-7-1-1 to 0.5-7-10-500'.RData") )
-system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.5'/datasets WorkSpace for '0.5-7-1-1 to 0.5-7-10-500'.RData") )
+#system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/datasets WorkSpace for '0.5-6-1-1 to 0.5-6-10-500'.RData") )
+#system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.5'/datasets WorkSpace for '0.5-6-1-1 to 0.5-6-10-500'.RData") )
+system.time( load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.5'/loaded WorkSpace for datasets from '0.5-6-1-1 to 0.5-6-10-500'.RData") )
 # assign all 30 candidate regressor names to an object
 var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
                "X9","X10","X11","X12","X13","X14","X15",
@@ -19,7 +20,6 @@ var_names <- c("X1","X2","X3","X4","X5","X6","X7","X8",
 length(datasets)
 head(DS_names_list)
 tail(DS_names_list)
-
 
 # load all necessary packages
 library(plyr)
@@ -38,23 +38,32 @@ library(parallel)
 ### function on each of the 260,000 datasets.
 ### Assign the full models to their corresponding datasets and
 ### store these in the object "full_models"
-CL <- makeCluster(detectCores() - 5L)
+CL <- makeCluster(detectCores() - 3L)
 system.time( clusterExport(CL, c('datasets')) )
 set.seed(11)      # for reproducibility
 system.time( BE.fits <- parLapply(cl = CL, X = datasets, \(ds_i) {
   full_models <- lm(ds_i$Y ~ ., data = ds_i)
   back <- stats::step(object = full_models, scope = formula(full_models), 
                       direction = 'back', trace = FALSE) }) )
-#system.time( BE.fits <- lapply(X = datasets, \(ds_i) {
+
+stopCluster(CL)
+rm(CL)
+
+#set.seed(11)      # for reproducibility
+#time_taken_to_fit_BE <- system.time( BE.fits <- lapply(X = datasets, \(ds_i) {
 #  full_models <- lm(ds_i$Y ~ ., data = ds_i)
 #  back <- stats::step(object = full_models, scope = formula(full_models), 
 #                      direction = 'back', trace = FALSE) }) )
-stopCluster(CL)
-rm(CL)
+#time_taken_to_fit_BE
+
+# Extract the elapsed time
+#BE_elapsed_time <- time_taken_to_fit_BE["elapsed"]
+
 
 # Extract the names of all IVs selected (besides their intercepts) by each 
 # of the 260k Backward Elimination Stepwise Regressions estimated above 
 # and store those estimates in the list object 'IVs_Selected_by_BE'
+set.seed(11)      # for reproducibility
 IVs_Selected_by_BE <- lapply(seq_along(BE.fits), 
                              \(i) names(coef(BE.fits[[i]])[-1]))
 
@@ -81,12 +90,22 @@ BE_TPs_list <- lapply(seq_along(datasets), \(i)
 BE_TPRs_list = lapply(seq_along(datasets), \(j)
                  j <- (BE_TPs_list[[j]]/num_of_Positives[[j]]) )
 
-# the number of False Positives & True Negative for each Regression
+# the number of False Positives & True Negatives for each Regression
 num_of_Negatives <- lapply(Structural_Variables, function(i) {30 - length(i)})
 BE_FPs_list <- lapply(seq_along(datasets), \(i)
                  sum(!(IVs_Selected_by_BE[[i]] %in% 
                          Structural_Variables[[i]]))) 
-BE_TNs_list <- lapply(seq_along(datasets), \(K) 30 - BE_TPs_list[[K]])
+
+BE_TNs_list <- lapply(seq_along(datasets), \(k)
+                      sum(IVs_Not_Selected_by_BE[[k]] %in% 
+                            Nonstructural_Variables[[k]]))
+
+# the number of False Negatives Selected by each BE
+BE_FNs_list <- lapply(seq_along(datasets), \(i)
+                      sum(IVs_Not_Selected_by_BE[[i]] %in% 
+                            Structural_Variables[[i]]))
+
+
 
 # the False Positive Rate = FP/(FP + TN)
 BE_FPRs_list = lapply(seq_along(datasets), \(j)
@@ -100,6 +119,23 @@ BE_TNRs_list <- lapply(seq_along(datasets), \(j)
 BE_TNRs_list2 <- lapply(BE_FPRs_list, \(i) 
                   i <- (1 - i))
 
+
+# the False Negative Rate = FN/(FN + TP)
+BE_FNRs_list = lapply(seq_along(datasets), \(j)
+                      j <- (BE_FNs_list[[j]])/(BE_FNs_list[[j]] + BE_TPs_list[[j]]))
+
+
+## calculate the accuracy and F1 score with help from GPT 4
+BE_Accuracy_list <- lapply(seq_along(datasets), function(i)
+  (BE_TPs_list[[i]] + BE_TNs_list[[i]])/(BE_TPs_list[[i]] + BE_TNs_list[[i]] + BE_FPs_list[[i]] + BE_FNs_list[[i]]))
+
+# First calculate precision and TPR for each dataset
+BE_Precision_list <- lapply(seq_along(datasets), function(i)
+  BE_TPs_list[[i]]/(BE_TPs_list[[i]] + BE_FPs_list[[i]]))
+
+# Then calculate F1 score for each dataset
+BE_F1_Score_list <- lapply(seq_along(datasets), function(i)
+  2 * (BE_Precision_list[[i]] * BE_TPRs_list[[i]])/(BE_Precision_list[[i]] + BE_TPRs_list[[i]]))
 
 
 ## Write one or more lines of code which determine whether each selected 
@@ -121,27 +157,47 @@ BE_num_Extraneous <- sum(BE_FPRs > 0)
 BE_TNRs <- unlist(BE_TNRs_list)
 BE_mean_TNR <- round(mean(BE_TNRs), 3)
 
+# False Negative Rates as a vector rather than a list
+BE_FNRs <- unlist(BE_FNRs_list)
+BE_mean_FNR <- round(mean(BE_FNRs), 3)
+
+
+# The PPVs/precision as a vector rather than a list
+BE_PPVs <- unlist(BE_Precision_list)
+BE_mean_PPV <- round(mean(BE_PPVs), 3)
+
+# The Accuracy as a vector rather than a list
+BE_Accs <- unlist(BE_Accuracy_list)
+BE_mean_Accuracy <- round(mean(BE_Accs), 3)
+
+# The F1 Scores as a vector rather than a list
+BE_F1s <- unlist(BE_F1_Score_list)
+BE_mean_F1_Score <- round(mean(BE_F1s), 3)
+
 
 # Number of Underspecified Regression Specifications Selected by BE
-BN_Under = sum( (BE_TPRs < 1) & (BE_FPRs == 0) )
+BE_Under = sum( (BE_TPRs < 1) & (BE_FPRs == 0) )
 # Number of Correctly Specified Regressions Selected by BE
-BN_Correct <- sum( (BE_TPRs == 1) & (BE_TNRs == 1) )
+BE_Correct <- sum( (BE_TPRs == 1) & (BE_TNRs == 1) )
 # Overspecified Regression Specifications Selected by FS
-BN_Over = sum( (BE_TPRs == 1) & (BE_FPRs > 0) )
+BE_Over = sum( (BE_TPRs == 1) & (BE_FPRs > 0) )
 
 # sum of all the 3 specification categories
-BE_Num_Un_Corr_Ov = BN_Under + BN_Correct + BN_Over
+BE_Num_Un_Corr_Ov = BE_Under + BE_Correct + BE_Over
+
 
 # create dataframes to store the performance metrics in
-Headers <- c("True Positive Rate", "True Negative Rate", 
-             "False Positive Rate")
-BE_PMs1 <- data.frame(BE_mean_TPR, BE_mean_TNR, BE_mean_FPR)
+Headers <- c("Runtime", "Mean Accuracy", "Mean F1 Score", "Mean Positive Predictive Value", 
+             "Mean True Positive Rate", "Mean True Negative Rate", "Mean False Positive Rate", 
+             "Mean False Negative Rate")
+BE_PMs1 <- data.frame(BE_elapsed_time, BE_mean_Accuracy, BE_mean_F1_Score, BE_mean_PPV, 
+                      BE_mean_TPR, BE_mean_TNR, BE_mean_FPR, BE_mean_FNR)
 colnames(BE_PMs1) <- Headers
 
 Headers <- c("Underspecified Models Selected", 
              "Correctly Specified Models Selected",
              "Overspecified Models Selected")
-BE_PMs2 <- data.frame(BN_Under, BN_Correct, BN_Over)
+BE_PMs2 <- data.frame(BE_Under, BE_Correct, BE_Over)
 colnames(BE_PMs2) <- Headers
 
 Headers <- c("All Correct, Over, and Underspecified Models",
@@ -155,7 +211,7 @@ BE_performance_metrics <- list(BE_PMs1, BE_PMs2, BE_PMs3)
 
 BE_df <- data.frame(BE = BE_performance_metrics)
 write.csv(BE_df, 
-          file = "BE's Performance on the DSs from 0.5-7-1-1 to 0.5-7-10-500.csv",
+          file = "BE's Performance on the DSs from 0.5-6-1-1 to 0.5-6-10-500.csv",
           row.names = FALSE)
 
 
@@ -172,7 +228,7 @@ write.csv(BE_df,
 ### function on each of the 260,000 datasets.
 ### Assign the null models to their corresponding datasets 
 ### and store these in the object "nulls".
-CL <- makeCluster(detectCores() - 2L)
+CL <- makeCluster(detectCores() - 3L)
 system.time( clusterExport(CL, c('datasets')) )
 set.seed(11)      # for reproducibility
 system.time( FS.fits <- parLapply(cl = CL, X = datasets, \(ds_i) {
@@ -180,21 +236,25 @@ system.time( FS.fits <- parLapply(cl = CL, X = datasets, \(ds_i) {
   full_models <- lm(ds_i$Y ~ ., data = ds_i)
   forward <- stats::step(object = nulls, scope = formula(full_models), 
                          direction = 'forward', trace = FALSE) }) )
+
 stopCluster(CL)
 rm(CL)
 
-set.seed(11)      # for reproducibility
-system.time( FS.fits <- lapply(X = datasets, \(ds_i) {
-  nulls <- lm(ds_i$Y ~ 1, data = ds_i)
-  full_models <- lm(ds_i$Y ~ ., data = ds_i)
-  forward <- stats::step(object = nulls, scope = formula(full_models), 
-                         direction = 'forward', trace = FALSE) }) )
-#stopCluster(CL)
-#rm(CL)
+#set.seed(11)      # for reproducibility
+#time_taken_to_fit_FS <- system.time( FS.fits <- lapply(X = datasets, \(ds_i) {
+#  nulls <- lm(ds_i$Y ~ 1, data = ds_i)
+#  full_models <- lm(ds_i$Y ~ ., data = ds_i)
+#  forward <- stats::step(object = nulls, scope = formula(full_models), 
+#                         direction = 'forward', trace = FALSE) }) )
+#time_taken_to_fit_FS
+
+# Extract the elapsed time
+# FS_elapsed_time <- time_taken_to_fit_FS["elapsed"]
 
 
 # assign all regressors selected by Forward Stepwise Regression,
 # not including the Intercepts
+set.seed(11)      # for reproducibility
 IVs_Selected_by_FS <- lapply(seq_along(FS.fits), 
                              \(i) names(coef(FS.fits[[i]])[-1]))
 
@@ -221,15 +281,42 @@ FS_TPRs_list = lapply(seq_along(datasets), \(j)
 FS_FPs_list <- lapply(seq_along(datasets), \(i)
                       sum(IVs_Selected_by_FS[[i]] %in% Nonstructural_Variables[[i]]))
 
+# the number of False Negatives Selected by each LASSO
+FS_FNs_list <- lapply(seq_along(datasets), \(i)
+                  sum(IVs_Not_Selected_by_FS[[i]] %in% 
+                        Structural_Variables[[i]]))
+
 # now calculate the # of True Negatives for each
-FS_TNs_list <- lapply(seq_along(datasets), \(K)  30 - FS_TPs_list[[K]])
+FS_TNs_list <- lapply(seq_along(datasets), \(k)
+                         sum(IVs_Not_Selected_by_FS[[k]] %in% 
+                               Nonstructural_Variables[[k]]))
 
 # the False Positive Rate = FP/(FP + TN)
 FS_FPRs_list = lapply(seq_along(datasets), \(j)
                  j <- (FS_FPs_list[[j]])/(FS_FPs_list[[j]] + FS_TNs_list[[j]]))
 
 # the True Negative Rate
-FS_TNRs_list <- lapply(FS_FPRs_list, \(i)  i <- (1 - i))
+FS_TNRs_list <- lapply(seq_along(datasets), \(j) 
+                       j <- (FS_TNs_list[[j]])/((num_of_Negatives[[j]])))
+
+
+# the False Negative Rate = FN/(FN + TP)
+FS_FNRs_list = lapply(seq_along(datasets), \(j)
+                      j <- (FS_FNs_list[[j]])/(FS_FNs_list[[j]] + FS_TPs_list[[j]]))
+
+
+## calculate the accuracy and F1 score with help from GPT 4
+FS_Accuracy_list <- lapply(seq_along(datasets), function(i)
+  (FS_TPs_list[[i]] + FS_TNs_list[[i]])/(FS_TPs_list[[i]] + FS_TNs_list[[i]] + FS_FPs_list[[i]] + FS_FNs_list[[i]]))
+
+# First calculate precision and TPR for each dataset
+FS_Precision_list <- lapply(seq_along(datasets), function(i)
+  FS_TPs_list[[i]]/(FS_TPs_list[[i]] + FS_FPs_list[[i]]))
+
+# Then calculate F1 score for each dataset
+FS_F1_Score_list <- lapply(seq_along(datasets), function(i)
+  2 * (FS_Precision_list[[i]] * FS_TPRs_list[[i]])/(FS_Precision_list[[i]] + FS_TPRs_list[[i]]))
+
 
 
 ## Write one or more lines of code which determine whether each selected 
@@ -245,33 +332,51 @@ FS_FPRs <- unlist(FS_FPRs_list)
 FS_mean_FPR <- round(mean(FS_FPRs), 3)
 FS_num_null_FPR <- sum(FS_FPRs == 0, na.rm = TRUE)
 # number of models with at least one extraneous variable selected
-FS_num_Extraneous <- sum(FS_FPRs > 0)
+FS_num_Extraneous <- sum(FS_FPRs > 0, na.rm = TRUE)
 
 # True Negative Rates as a vector rather than a list
 FS_TNRs <- unlist(FS_TNRs_list)
-FS_mean_TNR <- round(mean(FS_TNRs_list), 3)
+FS_mean_TNR <- round(mean(FS_TNRs), 3)
+
+# False Negative Rates as a vector rather than a list
+FS_FNRs <- unlist(FS_FNRs_list)
+FS_mean_FNR <- round(mean(FS_FNRs), 3)
+
+
+# The PPVs/precision as a vector rather than a list
+FS_PPVs <- unlist(FS_Precision_list)
+FS_mean_PPV <- round(mean(FS_PPVs), 3)
+
+# The Accuracy as a vector rather than a list
+FS_Accs <- unlist(FS_Accuracy_list)
+FS_mean_Accuracy <- round(mean(FS_Accs), 3)
+
+# The F1 Scores as a vector rather than a list
+FS_F1s <- unlist(FS_F1_Score_list)
+FS_mean_F1_Score <- round(mean(FS_F1s), 3)
 
 
 # Number of Underspecified Regression Specifications Selected by FS
-FN_Under = sum( (FS_TPRs < 1) & (FS_FPRs == 0) )
+FS_Under = sum( (FS_TPRs < 1) & (FS_FPRs == 0) )
 # Number of Correctly Specified Regressions Selected by FS
-FN_Correct <- sum( (FS_TPRs == 1) & (FS_TNRs == 1) )
+FS_Correct <- sum( (FS_TPRs == 1) & (FS_TNRs == 1) )
 # Overspecified Regression Specifications Selected by FS
-FN_Over = sum( (FS_TPRs == 1) & (FS_FPRs > 0) )
+FS_Over = sum( (FS_TPRs == 1) & (FS_FPRs > 0) )
 
 # sum of all the 3 specification categories
-FS_Num_Un_Corr_Ov = FN_Under + FN_Correct + FN_Over
+FS_Num_Un_Corr_Ov = FS_Under + FS_Correct + FS_Over
 
 
-Headers <- c("True Positive Rate", "True Negative Rate", 
-             "False Positive Rate")
-FS_PMs1 <- data.frame(FS_mean_TPR, FS_mean_TNR, FS_mean_FPR)
+Headers <- c("Runtime", "Mean Accuracy", "Mean F1 Score", "Mean Positive Predictive Value", "Mean True Positive Rate", 
+             "Mean True Negative Rate", "Mean False Positive Rate", "Mean False Negative Rate")
+FS_PMs1 <- data.frame(FS_elapsed_time, FS_mean_Accuracy, FS_mean_F1_Score, 
+                      FS_mean_PPV, FS_mean_TPR, FS_mean_TNR, FS_mean_FPR, FS_mean_FNR)
 colnames(FS_PMs1) <- Headers
 
 Headers <- c("Underspecified Models Selected", 
              "Correctly Specified Models Selected",
              "Overspecified Models Selected")
-FS_PMs2 <- data.frame(FN_Under, FN_Correct, FN_Over)
+FS_PMs2 <- data.frame(FS_Under, FS_Correct, FS_Over)
 colnames(FS_PMs2) <- Headers
 
 Headers <- c("All Correct, Over, and Underspecified Models", 
@@ -285,15 +390,15 @@ FS_performance_metrics <- list(FS_PMs1, FS_PMs2, FS_PMs3)
 
 FS_df <- data.frame(FS = FS_performance_metrics)
 write.csv(FS_df, 
-          file = "FS's Performance on the DSs from 0.5-7-1-1 to 0.5-7-10-500.csv", 
+          file = "FS's Performance on the DSs from 0.5-6-1-1 to 0.5-6-10-500.csv", 
           row.names = FALSE)
 length(BE_performance_metrics)
 length(FS_performance_metrics)
 
-df <- data.frame(BE = BE_performance_metrics, FS = FS_performance_metrics)
-write.csv(df, 
-          file = "SR's Performance on the DSs from 0.5-7-1-1 to 0.5-7-10-500.csv", 
-          row.names = FALSE)
+df <- data.frame(BE = BE_performance_metrics, " ", FS = FS_performance_metrics)
+library(readr)
+write_csv(df, file = "SR's Performance on the DSs from 0.5-6-1-1 to 0.5-6-10-500.csv")
+df
 
 ## Create a single csv file that has the Regressors selected by both!
 write.csv(data.frame(DS_name = DS_names_list, 
@@ -305,20 +410,19 @@ write.csv(data.frame(DS_name = DS_names_list,
                                                    toString),
                      Nonstructural_Variables = sapply(Nonstructural_Variables, 
                                                       toString)),
-          file = "Regressors Selected by SR for DSs from 0-12-1-1 to 0-12-10-500.csv", 
-          row.names = FALSE)
-
-
-
-
+          file = "Regressors Selected by SR for DSs from 0.5-6-1-1 to 0.5-6-10-500.csv")
 
 length(datasets)
 head(DS_names_list)
 tail(DS_names_list)
 #write.csv(x = data.frame(first_6_datasets = head(DS_names_list),
 #                             last_6_datasets = tail(DS_names_list)), 
-#           file = "Dataset range for 0.datasets WorkSpace for '0.5-7-1-1 to 0.5-7-10-500'.csv",
+#           file = "Dataset range for 0.datasets WorkSpace for '0.5-6-1-1 to 0.5-6-10-500'.csv",
 #           row.names = FALSE)
 
-#save.image("D:/EER/Saved WorkSpaces/BE & FS WorkSpace for the 10k '0.5-7-1-1 to 0.5-7-10-500' datasets.RData")
-#save.image("D:/EER folder/WorkSpaces/BE & FS WorkSpace for the 10k '0.5-7-1-1 to 0.5-7-10-500' datasets.RData")
+#save.image("D:/EER/Saved WorkSpaces/BE & FS WorkSpace for the 10k '0.5-6-1-1 to 0.5-6-10-500' datasets.RData")
+#save.image("D:/EER folder/WorkSpaces/BE & FS WorkSpace for the 10k '0.5-6-1-1 to 0.5-6-10-500' datasets.RData")
+time_taken_to_fit_BE
+BE_elapsed_time
+time_taken_to_fit_FS
+FS_elapsed_time
