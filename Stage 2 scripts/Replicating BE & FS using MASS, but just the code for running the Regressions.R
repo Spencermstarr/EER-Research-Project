@@ -161,6 +161,14 @@ rm(CL)
 IVs_Selected_by_FS <- lapply(seq_along(FS_fits), 
                              \(i) names(coef(FS_fits[[i]])[-1]))
 
+FS_IV_Candidates <- function(var_names, IVs_Selected_by_FS) {
+  Candidate_Vars <- setdiff(var_names, IVs_Selected_by_FS)
+  return(Candidate_Vars)}
+
+IVs_Not_Selected_by_FS <- lapply(seq_along(FS.fits), \(j)
+                                 j <- (FS_IV_Candidates(var_names, IVs_Selected_by_FS[[j]])))
+
+
 
 ### Count up how many Variables Selected match  the true 
 ### structural equation variables for that dataset in order
@@ -169,8 +177,6 @@ IVs_Selected_by_FS <- lapply(seq_along(FS_fits),
 FS_TPs <- lapply(seq_along(datasets), \(i)
                               sum(IVs_Selected_by_FS[[i]] %in% 
                                     Structural_Variables[[i]]))
-FS_TPRs = lapply(seq_along(datasets), \(j)
-                  j <- (FS_TPs[[j]]/num_of_Positives[[j]]) )
 
 # the number of total Negatives & False Positives for each Regression
 FS_FPs <- lapply(seq_along(datasets), \(i)
@@ -178,6 +184,15 @@ FS_FPs <- lapply(seq_along(datasets), \(i)
                          Structural_Variables[[i]]))) 
 # now calculate the # of True Negatives for each
 FS_TNs <- lapply(seq_along(datasets), \(K)  30 - FS_TPs[[K]])
+# calculate the # of False Negatives in each selected model
+FS_FNs <- lapply(seq_along(datasets), \(i)
+                 sum(IVs_Not_Selected_by_FS[[i]] %in%
+                       Structural_Variables))
+
+# the True Positive Rate
+FS_TPRs = lapply(seq_along(datasets), \(j)
+                 j <- (FS_TPs[[j]]/num_of_Positives[[j]]) )
+
 # the False Positive Rate = FP/(FP + TN)
 FS_FPRs = lapply(seq_along(datasets), \(j)
                  j <- (FS_FPs[[j]])/(FS_FPs[[j]] + FS_TNs[[j]]))
@@ -188,6 +203,22 @@ BM3_FPRs = lapply(seq_along(datasets), \(i)
 FS_TNRs <- lapply(FS_FPRs, \(i)  i <- (1 - i))
 BM3_TNRs <- lapply(seq_along(datasets), \(j) 
                    j <- (FS_TNs[[j]])/((num_of_Negatives[[j]])))
+
+# the False Negative Rate = FN/(FN + TP)
+FS_FNRs = lapply(seq_along(datasets), \(j)
+                      j <- (FS_FNs[[j]])/(FS_FNs[[j]] + FS_TPs[[j]]))
+
+## calculate the accuracy
+FS_Accuracies <- lapply(seq_along(datasets), function(i)
+  (FS_TPs[[i]] + FS_TNs[[i]])/(FS_TPs[[i]] + FS_TNs[[i]] + FS_FPs[[i]] + FS_FNs[[i]]))
+
+# First calculate precision and TPR for each dataset
+FS_PPVs <- lapply(seq_along(datasets), function(i)
+  FS_TPs[[i]]/(FS_TPs[[i]] + FS_FPs[[i]]))
+
+# Then calculate F1 score for each dataset
+FS_F1_Scores <- lapply(seq_along(datasets), function(i)
+  2 * (FS_PPVs[[i]] * FS_TPRs[[i]])/(FS_PPVs[[i]] + FS_TPRs[[i]]))
 
 
 ## Write one or more lines of code which determine whether each selected 
@@ -207,8 +238,24 @@ num_null_FPR <- sum(BM3_FPRs == 0, na.rm = TRUE)
 BM3_TNRs <- unlist(FS_TNRs)
 BM3_mean_TNR <- round(mean(BM3_TNRs), 3)
 
+# False Negative Rates as a vector rather than a list
+BM3_FNRs <- unlist(FS_FNRs)
+BM3_mean_FNR <- round(mean(BM3_FNRs), 3)
+
+# The PPVs/precision as a vector rather than a list
+BM3_PPVs <- unlist(FS_PPVs)
+BM3_mean_PPV <- round(mean(BM3_PPVs), 3)
+
+# The Accuracy as a vector rather than a list
+BM3_Accs <- unlist(FS_Accuracies)
+BM3_mean_Accuracy <- round(mean(BM3_Accs), 3)
+
+# The F1 Scores as a vector rather than a list
+BM3_F1s <- unlist(FS_F1_Scores)
+BM3_mean_F1_Score <- round(mean(BM3_F1s), 3)
+
 # number of models with at least one extraneous variable selected
-num_Extraneous <- sum(FS_FPRs > 0)
+num_Extraneous <- sum(FS_FPRs > 0, na.rm = TRUE)
 # Overspecified Regression Specifications Selected by FS
 N_Over = sum( (FS_FPRs > 0) & (FS_TPRs == 1))
 # Number of Underspecified Regression Specifications Selected by FS
@@ -216,9 +263,10 @@ N_Under = sum( (FS_TPRs < 1) & (FS_FPRs == 0) )
 # Number of Correctly Specified Regressions Selected by FS
 N_Correct <- sum( (FS_TPRs == 1) & (FS_FPRs == 0) & (FS_TNRs == 1) )
 
-Headers <- c("True Positive Rate", "True Negative Rate", 
-             "False Positive Rate")
-BM3_PMs1 <- data.frame(BM3_mean_TPR, BM3_mean_TNR, BM3_mean_FPR)
+Headers <- c("Runtime", "Mean Accuracy", "Mean F1 Score", "Mean Positive Predictive Value", "Mean True Positive Rate", 
+             "Mean True Negative Rate", "Mean False Positive Rate", "Mean False Negative Rate")
+BM3_PMs1 <- data.frame(BM3_elapsed_time, BM3_mean_Accuracy, BM3_mean_F1_Score, 
+                       BM3_mean_PPV, BM3_mean_TPR, BM3_mean_TNR, BM3_mean_FPR, BM3_mean_FNR)
 colnames(BM3_PMs1) <- Headers
 
 Headers <- c("Underspecified Models Selected", 
@@ -248,7 +296,9 @@ write.csv(data.frame(DS_name = DS_names_list,
                      BE_Variables_Selected = sapply(IVs_Selected_by_BE, toString), 
                      FS_Variables_Selected = sapply(IVs_Selected_by_FS, toString),
                      Structural_Variables = sapply(Structural_Variables, 
-                                                   toString)), 
+                                                   toString),
+                     Nonstructural_Variables = sapply(Nonstructural_Variables, 
+                                                      toString)),
           file = "Regressors Selected by stepAIC for DSs from 0.75-11-1-1 to 0.75-11-10-500.csv",
           row.names = FALSE)
 
