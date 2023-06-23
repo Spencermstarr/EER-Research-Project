@@ -1,6 +1,7 @@
 ### This script can be run by the user by hitting Ctrl+Alt+R.
 rm(list = ls())
 load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.5'/datasets WorkSpace for '0.5-14-1-1 to 0.5-15-10-500'.RData")
+load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.5'/loaded WorkSpace for datasets from '0.5-14-1-1 to 0.5-15-10-500'.RData")
 setwd("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER project/1st Benchmark/results for enet() with s = 1")
 getwd()
 # load all necessary packages
@@ -53,20 +54,22 @@ write.csv(data.frame(DS_name = DS_names_list,
 
 
 
-### Count up how many Variables Selected match  the true 
-### structural equation variables for that dataset in order
-### to measure LASSO's performance.
+### Count up how many Variables Selected match the variables in the  
+### structural equation which truthfully describes the population where the observations 
+### in the sample dataset came from, or alternatively, the process it represents, 
+### in order to measure LASSO's performance.
 # all of the "Positives", i.e. all the Structural Regressors
 enet_NPs <- lapply(Structural_Variables, function(i) { length(i) })
 # all of the "Negatives", i.e. all the Nonstructural Regressors
 enet_NNs <- lapply(Nonstructural_Variables, function(i) { length(i) })
+# I am adding in alternative ways of cacluclating several of these just in case my first attempt is wrong
 enet_NNs2 <- lapply(Structural_Variables, function(i) { 30 - length(i) })
 
-# the number True Positives for each LASSO
+# the number True Positives for each set of factors selected by LASSO
 enet_TPs <- lapply(seq_along(datasets), \(i)
                    sum(IVs_Selected[[i]] %in% 
                          Structural_Variables[[i]]))
-# the number True Negatives for each LASSO
+# the number True Negatives for each set of factors selected by LASSO
 enet_TNs <- lapply(seq_along(datasets), \(k)
                    sum(IVs_Not_Selected[[k]] %in% 
                          Nonstructural_Variables[[k]]))
@@ -75,13 +78,13 @@ enet_TNs <- lapply(seq_along(datasets), \(k)
 enet_FPs <- lapply(seq_along(datasets), \(i)
                    sum(IVs_Selected[[i]] %in% 
                          Nonstructural_Variables[[i]]))
-# the number of False Negatives Selected by each LASSO
+# the number of False Negatives 
 enet_FNs <- lapply(seq_along(datasets), \(i)
                    sum(IVs_Not_Selected[[i]] %in% 
                          Structural_Variables[[i]]))
 
 
-# the True Positive Rate
+# the True Positive Rate aka the sensitivity
 enet_TPRs = lapply(seq_along(datasets), \(j)
                    j <- (enet_TPs[[j]]/enet_NPs[[j]]))
 
@@ -89,11 +92,15 @@ enet_TPRs = lapply(seq_along(datasets), \(j)
 enet_FPRs = lapply(seq_along(datasets), \(j)
                    j <- (enet_FPs[[j]])/(enet_FPs[[j]] + enet_TNs[[j]]))
 
-# the True Negative Rate
+# the True Negative Rate aka the specificity
 enet_TNRs <- lapply(seq_along(datasets), \(w)
                      w <- (enet_TNs[[w]]/(enet_FPs[[w]] + enet_TNs[[w]])))
 enet_TNRs2 <- lapply(enet_FPRs, \(i) 
                     i <- (1 - i))
+                           
+# the False Negative Rate
+enet_FNRs <- lapply(seq_along(datasets), \(i)
+                   i <- ((enet_FNs[[i]])/(enet_TPs[[i]] + enet_FNs[[i]])))
 
 
 ## calculate the Accuracy and F1 Score with help from GPT 4
