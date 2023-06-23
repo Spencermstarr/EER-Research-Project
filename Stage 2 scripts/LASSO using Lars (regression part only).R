@@ -4,7 +4,7 @@
 rm(list = ls())
 # find out which working directory R has defaulted to
 getwd()
-load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0'/datasets WorkSpace for '0-3-1-1 to 0-4-10-500'.RData")
+load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0'/datasets WorkSpace for '0-15-1-1 to 0-15-10-500'.RData")
 #Structural_Variables <- True_Regressors
 
 # load all necessary packages using only 1 command/line
@@ -29,7 +29,7 @@ set.seed(11)     # to ensure replicability
 system.time(LASSO.Lars.Coeffs <- lapply(LASSO.Lars.fits, 
                             function(i) predict(i, 
                                                 x = as.matrix(dplyr::select(i, starts_with("X"))), 
-                                                s = 0.2, mode = "fraction", 
+                                                s = 0.25, mode = "fraction", 
                                                 type = "coefficients")[["coefficients"]]))
 
 IVs.Selected.by.Lars <- lapply(LASSO.Lars.Coeffs, function(i) names(i[i != 0]))
@@ -44,7 +44,7 @@ write.csv(data.frame(DS_name = DS_names_list,
                                                    toString),
                      NonStructural_Variables = sapply(Nonstructural_Variables, 
                                                       toString)), 
-          file = "Lars's Selections for the DSs from 0-3-1-1 to 0-4-10-500.csv", 
+          file = "Lars's Selections for the DSs from 0-15-1-1 to 0-15-10-500.csv", 
           row.names = FALSE)
 
 
@@ -88,6 +88,10 @@ FalsePosRate = lapply(seq_along(datasets), \(j)
 Specificity <- lapply(seq_along(datasets), \(j) 
                       j <- (True_Negatives[[j]]/Number_of_Negatives[[j]]))
 
+# the False Negative Rate = FN/(FN + TP)
+FalseNegRate <- lapply(seq_along(datasets), \(i)
+                       i <- (False_Negatives[[i]])/
+                         (False_Negatives[[i]] + True_Positives[[i]]))
 
 ## calculate the accuracy and F1 score with help from GPT 4
 Accuracy <- lapply(seq_along(datasets), function(i)
@@ -102,47 +106,68 @@ Recall <- Sensitivity  # You have already calculated recall as True Positive Rat
 F1_Score <- lapply(seq_along(datasets), function(i)
   2 * (Precision[[i]] * Recall[[i]])/(Precision[[i]] + Recall[[i]]))
 
-
 ## Write one or more lines of code which determine whether each selected 
 ## model is "Underspecified", "Correctly Specified", or "Overspecified".
 # True Positive Rates as a vector rather than a list
-TPR <- unlist(Sensitivity)
-mean_TPR <- round(mean(TPR), 3)
-# number of selected regressions with at least one omitted variable
-num_OMVs <- sum(TPR < 1, na.rm = TRUE)
+TPRs <- unlist(Sensitivity)
+mean_TPR <- round(mean(TPRs), 3)
 
 # False Positive Rate as a vector rather than a list
-FPR <- unlist(FalsePosRate)
-mean_FPR <- round(mean(FPR), 3)
-num_of_null_FPR <- sum(FPR == 0, na.rm = TRUE)
+FPRs <- unlist(FalsePosRate)
+mean_FPR <- round(mean(FPRs), 3)
+
 
 # True Negative Rates as a vector rather than a list
-TNR <- unlist(Specificity)
-mean_TNR <- round(mean(TNR), 3)
+TNRs <- unlist(Specificity)
+mean_TNR <- round(mean(TNRs), 3)
 
+# False Negative Rate as a vector rather than a list
+FNRs <- unlist(FalseNegRate)
+mean_FNR <- round(mean(FNRs), 3)
+
+# Accuracy
+Accs <- unlist(Accuracy)
+mean_Accuracy <- round(mean(Accs), 3)
+
+# Precision aka PPV
+PPVs <- unlist(Precision)
+mean_PPV <- round(mean(PPVs), 3)
+
+# F1 Score
+F1s <- unlist(F1_Score)
+mean_F1_Score <- round(mean(F1s), 3)
+
+
+# number of selected regressions with at least one omitted variable
+num_OMVs <- sum(((TPRs < 1) | (FNRs > 0)), na.rm = TRUE)
+# number of models with at least one extraneous variable selected
+num_Extraneous <- sum(FPRs > 0, na.rm = TRUE)
+# the # of models selected with no false positives
+num_of_null_FPR <- sum(FPRs == 0, na.rm = TRUE)
 
 # Number of Underspecified Regression Specifications Selected by LASSO
-Under = sum( (TPR < 1) & (FPR == 0) )
+Under = sum( (TPRs < 1) & (FPRs == 0) )
 
 # Number of Correctly Specified Regressions Selected by LASSO
-Correct <- sum( (TPR == 1) & (TNR == 1) )
+Correct <- sum( (TPRs == 1) & (TNRs == 1) )
 
-# number of models with at least one extraneous variable selected
-num_Extraneous <- sum(FPR > 0, na.rm = TRUE)
 # Overspecified Regression Specifications Selected by LASSO
-Over = sum( (TPR == 1) & (FPR > 0) )
+Over = sum( (TPRs == 1) & (FPRs > 0) )S
 
 # sum of all the 3 specification categories
 Num_Under_Correct_or_Over = Under + Correct + Over
 
 
-PMsA <- data.frame(mean(unlist(Accuracy), round = 3), 
-                   mean(unlist(F1_Score), round = 3))
-colnames(PMsA) <- c("Mean Accuracy", "Mean F1 Score")
+PMsA <- data.frame(round(time_elapsed_fitting), 
+                   mean(unlist(Accuracy), round = 3), 
+                   mean(unlist(F1_Score), round = 3),
+                   mean(unlist(Precision), round = 3))
+colnames(PMsA) <- c("Runtime", "Mean Accuracy", "Mean F1 Score", 
+                    "Mean Positive Predictive Value")
 
-Headers <- c("True Positive Rate", "True Negative Rate", 
-             "False Positive Rate")
-PMsB <- data.frame(mean_TPR, mean_TNR, mean_FPR)
+Headers <- c("Mean True Positive Rate", "Mean True Negative Rate", 
+             "Mean False Positive Rate", "Mean False Negative Rate")
+PMsB <- data.frame(mean_TPR, mean_TNR, mean_FPR, mean_FNR)
 colnames(PMsB) <- Headers
 
 Headers <- c("Underspecified Models Selected", 
@@ -162,11 +187,12 @@ Lars_performance <- data.frame(PMsA, PMsB, PMsC, PMsD)
 Lars_performance
 
 write.csv(Lars_performance, 
-          file = "Lars's Performance on the datasets from 0-3-1-1 to 0-4-10-500.csv", 
+          file = "Lars's Performance on the datasets from 0-15-1-1 to 0-15-10-500.csv", 
           row.names = FALSE)
 
 length(datasets)
 head(DS_names_list)
 tail(DS_names_list)
 getwd()
+time_taken_to_fit
 time_elapsed_fitting
