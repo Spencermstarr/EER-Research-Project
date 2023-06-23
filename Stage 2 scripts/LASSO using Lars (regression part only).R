@@ -4,7 +4,8 @@
 rm(list = ls())
 # find out which working directory R has defaulted to
 getwd()
-load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0'/datasets WorkSpace for '0-15-1-1 to 0-15-10-500'.RData")
+#load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/datasets WorkSpace for '0.75-9-1-1 to 0.75-9-10-500'.RData")
+load("C:/Users/Spencer/OneDrive/Documents/Analytics Projects/EER Project/Saved WorkSpaces/Workspaces for dataset folders starting with '0.75'/loaded WorkSpace for datasets from '0.25-12-1-1 to 0.25-12-10-500'.RData")
 #Structural_Variables <- True_Regressors
 
 # load all necessary packages using only 1 command/line
@@ -44,7 +45,7 @@ write.csv(data.frame(DS_name = DS_names_list,
                                                    toString),
                      NonStructural_Variables = sapply(Nonstructural_Variables, 
                                                       toString)), 
-          file = "Lars's Selections for the DSs from 0-15-1-1 to 0-15-10-500.csv", 
+          file = "Lars's Selections for the DSs from 0.75-9-1-1 to 0.75-9-10-500.csv", 
           row.names = FALSE)
 
 
@@ -152,7 +153,7 @@ Under = sum( (TPRs < 1) & (FPRs == 0) )
 Correct <- sum( (TPRs == 1) & (TNRs == 1) )
 
 # Overspecified Regression Specifications Selected by LASSO
-Over = sum( (TPRs == 1) & (FPRs > 0) )S
+Over = sum( (TPRs == 1) & (FPRs > 0) )
 
 # sum of all the 3 specification categories
 Num_Under_Correct_or_Over = Under + Correct + Over
@@ -187,7 +188,7 @@ Lars_performance <- data.frame(PMsA, PMsB, PMsC, PMsD)
 Lars_performance
 
 write.csv(Lars_performance, 
-          file = "Lars's Performance on the datasets from 0-15-1-1 to 0-15-10-500.csv", 
+          file = "Lars's Performance on the datasets from 0.75-9-1-1 to 0.75-9-10-500.csv", 
           row.names = FALSE)
 
 length(datasets)
