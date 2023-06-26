@@ -19,7 +19,7 @@ library_list <- c(library(dplyr),library(stringi),library(stats),
 # are typically called returned for any regression ran using R
 set.seed(11)     # to ensure replicability
 time_taken_to_fit <- system.time(LASSO.Lars.fits <- lapply(X = datasets, function(i) 
-  lars(x = as.matrix(select(i, starts_with("X"))), 
+  lars(x = as.matrix(dplyr::select(i, starts_with("X"))), 
        y = i$Y, type = "lasso", normalize =  FALSE)))
 # Extract the elapsed time
 time_elapsed_fitting <- time_taken_to_fit["elapsed"]
