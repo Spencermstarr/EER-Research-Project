@@ -252,7 +252,7 @@ rm(CL)
 #time_taken_to_fit_FS
 
 # Extract the elapsed time
- FS_elapsed_time <- time_taken_to_fit_FS["elapsed"]
+FS_elapsed_time <- time_taken_to_fit_FS["elapsed"]
 
 
 # assign all regressors selected by Forward Stepwise Regression,
