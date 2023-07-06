@@ -1,2 +1,0 @@
-25 random possible variations of the csv formatted, 500 row by 31 column synthetic datasets with their levels of pairwise multicollinearity set to 0.75, 
-number of true population predictors/factors set to 3, and error variances of 10.
