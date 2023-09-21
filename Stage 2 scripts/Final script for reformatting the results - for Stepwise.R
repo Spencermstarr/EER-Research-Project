@@ -1,20 +1,21 @@
-
-
 # load the tidyverse because you will need to have the readr package
 library(tidyverse)
 Selections_by_Stepwise <- read_csv("All selections made by Stepwise, csv version.csv", col_names = TRUE)
 # inspect the data
 head(Selections_by_Stepwise, n = 4)
 str(Selections_by_Stepwise)
+
 # only need to import one dataset, so just attach it for convenience 
 attach(Selections_by_Stepwise)
 Structural_Variables <- Selections_by_Stepwise$Structural.Variables
 class(Structural_Variables)
 NonStructural_Variables <- Selections_by_Stepwise$NonStructural.Variables
+
 # BM2 stands for the second benchmark variable selection algorithm, 
 # which is Backward Elimination Stepwise Regression
 BM2_Variables_Selected <- Selections_by_Stepwise$Candidate.Variables.Selected.by.Backward.Elimination.Stepwise.Regression
 BM2_Variables_Not_Selected <- Selections_by_Stepwise$Candidate.Variables.Not.Selected.by.Backward.Elimination.Stepwise.Regression
+
 # BM3 stands for the third benchmark variable selection algorithm, 
 # which is Forward Selection Stepwise Regression
 BM3_Variables_Selected <- Selections_by_Stepwise$Candidate.Variables.Selected.by.Forward.Selection.Stepwise.Regression
@@ -41,37 +42,29 @@ NNs2 <- lapply(NonStructural_Variables, function(i) {
   nonstructural_vars <- trimws(strsplit(i, ",")[[1]])
   length(nonstructural_vars) })
 
-
 # all the "True Positives"
 BM2_TPs <- lapply(seq_along(Structural_Variables), function(i) {
   selected_vars <- trimws(strsplit(Variables_Selected[[i]], ",")[[1]])
   structural_vars <- trimws(strsplit(Structural_Variables[[i]], ",")[[1]])
-  sum(selected_vars %in% structural_vars)
-})
-
+  sum(selected_vars %in% structural_vars) })
 
 # the number True Negatives
 BM2_TNs <- lapply(seq_along(Structural_Variables), function(i) {
   selected_vars <- trimws(strsplit(Variables_Not_Selected[[i]], ",")[[1]])
   nonstructural_vars <- trimws(strsplit(NonStructural_Variables[[i]], ",")[[1]])
-  sum(selected_vars %in% nonstructural_vars)
-})
-
+  sum(selected_vars %in% nonstructural_vars) })
 
 # the number of False Positives
 BM2_FPs <- lapply(seq_along(Structural_Variables), function(i) {
   selected_vars <- trimws(strsplit(Variables_Selected[[i]], ",")[[1]])
   nonstructural_vars <- trimws(strsplit(NonStructural_Variables[[i]], ",")[[1]])
-  sum(selected_vars %in% nonstructural_vars)
-})
-
+  sum(selected_vars %in% nonstructural_vars) })
 
 # the number of False Negatives Selected 
 BM2_FNs <- lapply(seq_along(Structural_Variables), function(i) {
   not_selected_vars <- trimws(strsplit(Variables_Not_Selected[[i]], ",")[[1]])
   structural_vars <- trimws(strsplit(Structural_Variables[[i]], ",")[[1]])
-  sum(not_selected_vars %in% structural_vars)
-})
+  sum(not_selected_vars %in% structural_vars) })
 
 False_Negatives_and_Positives_Selected <- tibble(Dataset.Name, BM2_FPs, BM2_FNs)
 class(False_Negatives_and_Positives_Selected)
