@@ -44,37 +44,40 @@ NNs2 <- lapply(NonStructural_Variables, function(i) {
 
 # all the "True Positives"
 BM2_TPs <- lapply(seq_along(Structural_Variables), function(i) {
-  selected_vars <- trimws(strsplit(Variables_Selected[[i]], ",")[[1]])
+  selected_vars <- trimws(strsplit(BM2_Variables_Selected[[i]], ",")[[1]])
   structural_vars <- trimws(strsplit(Structural_Variables[[i]], ",")[[1]])
   sum(selected_vars %in% structural_vars) })
 
 # the number True Negatives
 BM2_TNs <- lapply(seq_along(Structural_Variables), function(i) {
-  selected_vars <- trimws(strsplit(Variables_Not_Selected[[i]], ",")[[1]])
+  selected_vars <- trimws(strsplit(BM2_Variables_Not_Selected[[i]], ",")[[1]])
   nonstructural_vars <- trimws(strsplit(NonStructural_Variables[[i]], ",")[[1]])
   sum(selected_vars %in% nonstructural_vars) })
 
 # the number of False Positives
 BM2_FPs <- lapply(seq_along(Structural_Variables), function(i) {
-  selected_vars <- trimws(strsplit(Variables_Selected[[i]], ",")[[1]])
+  selected_vars <- trimws(strsplit(BM2_Variables_Selected[[i]], ",")[[1]])
   nonstructural_vars <- trimws(strsplit(NonStructural_Variables[[i]], ",")[[1]])
   sum(selected_vars %in% nonstructural_vars) })
 
 # the number of False Negatives Selected 
 BM2_FNs <- lapply(seq_along(Structural_Variables), function(i) {
-  not_selected_vars <- trimws(strsplit(Variables_Not_Selected[[i]], ",")[[1]])
+  not_selected_vars <- trimws(strsplit(BM2_Variables_Not_Selected[[i]], ",")[[1]])
   structural_vars <- trimws(strsplit(Structural_Variables[[i]], ",")[[1]])
   sum(not_selected_vars %in% structural_vars) })
 
 False_Negatives_and_Positives_Selected <- tibble(Dataset.Name, BM2_FPs, BM2_FNs)
 class(False_Negatives_and_Positives_Selected)
 
-False_Negatives_and_Positives_Selected$BM2_FPs <- sapply(False_Negatives_and_Positives_Selected$BM2_FPs, paste, collapse = ",")
-False_Negatives_and_Positives_Selected$BM2_FNs <- sapply(False_Negatives_and_Positives_Selected$BM2_FNs, paste, collapse = ",")
+False_Negatives_and_Positives_Selected_by_BE$BM2_FPs <- sapply(False_Negatives_and_Positives_Selected$BM2_FPs, paste, collapse = ",")
+False_Negatives_and_Positives_Selected_by_BE$BM2_FNs <- sapply(False_Negatives_and_Positives_Selected$BM2_FNs, paste, collapse = ",")
 
 write_csv(x = False_Negatives_and_Positives_Selected, 
           file = "False Positives & Negatives Selected by BE Stepwise.csv", 
           col_names = TRUE)
+
+
+
 
 
 
@@ -85,33 +88,33 @@ write_csv(x = False_Negatives_and_Positives_Selected,
 ### to measure the performance of Forward Selection.
 # all the "True Positives"
 BM3_TPs <- lapply(seq_along(Structural_Variables), function(i) {
-  selected_vars <- trimws(strsplit(Variables_Selected[[i]], ",")[[1]])
+  selected_vars <- trimws(strsplit(BM3_Variables_Selected[[i]], ",")[[1]])
   structural_vars <- trimws(strsplit(Structural_Variables[[i]], ",")[[1]])
   sum(selected_vars %in% structural_vars) })
 
 # the number True Negatives
 BM3_TNs <- lapply(seq_along(Structural_Variables), function(i) {
-  selected_vars <- trimws(strsplit(Variables_Not_Selected[[i]], ",")[[1]])
+  selected_vars <- trimws(strsplit(BM3_Variables_Not_Selected[[i]], ",")[[1]])
   nonstructural_vars <- trimws(strsplit(NonStructural_Variables[[i]], ",")[[1]])
   sum(selected_vars %in% nonstructural_vars) })
 
 # the number of False Positives
 BM3_FPs <- lapply(seq_along(Structural_Variables), function(i) {
-  selected_vars <- trimws(strsplit(Variables_Selected[[i]], ",")[[1]])
+  selected_vars <- trimws(strsplit(BM3_Variables_Selected[[i]], ",")[[1]])
   nonstructural_vars <- trimws(strsplit(NonStructural_Variables[[i]], ",")[[1]])
   sum(selected_vars %in% nonstructural_vars) })
 
 # the number of False Negatives Selected 
 BM3_FNs <- lapply(seq_along(Structural_Variables), function(i) {
-  not_selected_vars <- trimws(strsplit(Variables_Not_Selected[[i]], ",")[[1]])
+  not_selected_vars <- trimws(strsplit(BM3_Variables_Not_Selected[[i]], ",")[[1]])
   structural_vars <- trimws(strsplit(Structural_Variables[[i]], ",")[[1]])
   sum(not_selected_vars %in% structural_vars) })
 
 False_Negatives_and_Positives_Selected <- tibble(Dataset.Name, BM3_FPs, BM3_FNs)
 class(False_Negatives_and_Positives_Selected)
 
-False_Negatives_and_Positives_Selected$BM3_FPs <- sapply(False_Negatives_and_Positives_Selected$BM3_FPs, paste, collapse = ",")
-False_Negatives_and_Positives_Selected$BM3_FNs <- sapply(False_Negatives_and_Positives_Selected$BM3_FNs, paste, collapse = ",")
+False_Negatives_and_Positives_Selected_by_FS$BM3_FPs <- sapply(False_Negatives_and_Positives_Selected$BM3_FPs, paste, collapse = ",")
+False_Negatives_and_Positives_Selected_by_FS$BM3_FNs <- sapply(False_Negatives_and_Positives_Selected$BM3_FNs, paste, collapse = ",")
 
 write_csv(x = False_Negatives_and_Positives_Selected, 
           file = "False Positives & Negatives Selected by FS Stepwise.csv", 
