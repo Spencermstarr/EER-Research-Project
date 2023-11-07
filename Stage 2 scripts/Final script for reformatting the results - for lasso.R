@@ -1,7 +1,7 @@
 rm(list = ls())
 
 library(tidyverse)
-Selections_by_Lasso <- read_csv("LASSO's selections via cv.glmnet with lambda.1se for M = 0.75.csv", col_names = TRUE)
+Selections_by_Lasso <- read_csv("LASSO's selections via cv.glmnet() with lambda.1se.csv", col_names = TRUE)
 head(Selections_by_Lasso, n = 4)
 str(Selections_by_Lasso)
 attach(Selections_by_Lasso)
